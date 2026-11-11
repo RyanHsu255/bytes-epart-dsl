@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bytes EPART DSL v0.4 規格書</title>
+<style>
+body{max-width:980px;margin:30px auto;padding:0 18px;font:15px/1.7 system-ui,sans-serif}
+pre{overflow:auto;padding:12px;background:#eff2f5}
+code{font-family:Consolas,monospace}
+table{border-collapse:collapse}
+td,th{padding:6px 12px;border:1px solid #ddd}
+</style>
+</head>
+<body>
+<h1 id="bytes-epart-dsl-v0.4">Bytes EPART DSL v0.4 規格書</h1>
+<p>草案更新於 2026-11-10。</p>
+<p>Bytes EPART DSL 用於繪製工業電氣元件的 2D 工程簡圖。圖面以毫米表達元件外形、電氣接點、安裝結構與識別資訊。內建接頭是工程示意模板。產品的尺寸、腳位與安裝資料應以經核實的資料為準。</p>
+<p>本工具的一項目標是讓使用者能用文字快速為原廠未提供 <code>.dwg</code> 或 <code>.dxf</code> 圖檔的小眾品牌電氣元件建立 <code>.dxf</code> 工程簡圖。預覽器可匯出單一 PART 視圖的 DXF。</p>
+<h2 id="section">通用語法與註解</h2>
+<p>每行一個指令。指令、模板及列舉值不分大小寫。標籤及顯示文字保留原始大小寫。子指令跟在所屬宣告後，縮排可省略。<code>[]</code> 表示可選項，<code>|</code> 表示選項擇一。</p>
+<p>行首 <code>#</code> 或 <code>//</code> 開始註解。單引號或雙引號之外的 <code>#</code> 也可以開始行尾註解，引號內的 <code>#</code> 是文字的一部分。</p>
+<pre><code class="language-text">CN -CN1 TB3 AT .5,+5 FUNCTION &quot;Power #1&quot;
+  LABEL L,PE,N  # 依 Pin 編號排列
+  LABEL_POS K2  # 接點下方
+</code></pre>
+<p><code>@</code> 可替代定位指令中的 <code>AT</code>。例如 <code>AT .5,+5</code>、<code>@ .5,+5</code> 和 <code>@.5,+5</code> 等效。此規則適用於所有使用 <code>AT</code> 的指令。</p>
+<p><code>BODY</code>、<code>AT</code>、<code>SIZE</code> 的寬高和 <code>MARGIN</code> 可用空格或逗號分隔數值。逗號兩側可留空格，同一組也可混用兩種分隔方式。例如 <code>BODY 130 90 83</code>、<code>BODY 130,90,83</code> 和 <code>BODY 130, 90 83</code> 等效。<code>AT .5,+5</code> 與 <code>AT .5 +5</code> 也等效。</p>
+<p>指令有誤時，編輯器顯示行號。點擊帶行號的診斷可選取編輯器中的對應行。修正錯誤後即可匯出。重複 ID、找不到表格目標和標籤數量不符會顯示警告，仍可預覽及匯出。</p>
+<h2 id="partbodyview">PART、BODY、VIEW</h2>
+<ul>
+<li><code>PART name</code> 指定元件名稱。預設為 <code>UNTITLED</code>。可合寫為 <code>PART MY_IO BODY 30 90 80</code>，尺寸規則與獨立的 BODY 指令相同。同一份文件可宣告多個 PART。各零件以自己的本體中心 (0,0) 定位，可在視圖選單分別預覽和匯出，也可使用相同的接頭 ID。</li>
+<li><code>BODY W H [D] [HIDE]</code> 指定寬、高、深，各尺寸必須大於 0。省略 <code>D</code> 時為 50 mm。省略整行時使用 100 × 100 × 50 mm。<code>HIDE</code> 保留本體尺寸供定位，在預覽與匯出隱藏本體外框。50 Pin 焊接表範例用它單獨繪製接頭。</li>
+<li><code>VIEW FRONT|BACK|LEFT|RIGHT|TOP|BOTTOM</code> 切換視圖，預設為 <code>FRONT</code>。各視圖獨立定義，不會自動投影接頭或安裝結構。</li>
+</ul>
+<p>BODY 中心固定在 <code>(0,0,0)</code>，是 DXF 的插入基準。每個視圖以 BODY 中心為 <code>(0,0)</code>，X 向右、Y 向上，<code>ROT</code> 正值為逆時針。FRONT／BACK 使用 W × H，LEFT／RIGHT 使用 D × H，TOP／BOTTOM 使用 W × D。</p>
+<h3 id="place">PLACE 共同圖面</h3>
+<p><code>PLACE name @x,y</code> 指定零件本體中心在共同圖面上的位置，單位為 mm，X 向右、Y 向上。PLACE 是獨立指令，可寫在 PART 前後。工具在所有零件都有 PLACE 時提供共同圖面，各零件依當前視圖繪製，SVG 採用相同位置。缺少座標時會提示零件名稱，各零件仍可獨立出圖。SET 文件使用組裝規則定位。</p>
+<pre><code class="language-text">PART A BODY 30 20 10
+PART B BODY 50 20 12
+PLACE A @0,0
+PLACE B @80,10
+</code></pre>
+<h2 id="cn">CN</h2>
+<pre><code class="language-text">CN [-id] TYPE [STYLE P|S|PLUG|SOCKET] [(AT | @) (x,y | K1…K9)] [ROT degrees] [ORDER mode] [START corner] [SHAPE ROUND|SQUARE] [PIN1 DOUBLE|SOLID|NONE] [PINEND AUTO|ARC|NONE] [FUNCTION text]
+</code></pre>
+<p>省略 ID 時，每個視圖依宣告順序自動分配 <code>-CN1</code>、<code>-CN2</code> 等，略過同一視圖所有明確指定的 ID，查重時不分大小寫。明確指定的 ID 以 <code>-</code> 開頭，後接至少一個字元。可用自訂名稱，例如 <code>-X1</code>、<code>-CN1</code>、<code>-電源輸入</code> 或 <code>-motor.out</code>。ID 不含空白、引號或註解符號 <code>#</code>。若圖面上的顯示名稱需要空格，可另用 <code>NAME &quot;Motor output&quot;</code>。舊寫法 <code>CN CN1 IDC20 AT x,y</code> 須改成 <code>CN -CN1 IDC20 AT x,y</code>。同一視圖的 ID 應唯一，重複時會警告，<code>TABLE id</code> 採用第一筆。不同視圖可以使用同一 ID。</p>
+<p><code>AT</code> 通常定位到接頭中心。錯列接頭以未錯列的針腳格中心定位，外框中心可因 <code>STAGGER</code> 與 <code>MARGIN</code> 偏移。RJ45 採模板原點。<code>ROT</code> 預設為 0，接頭輪廓和接點一起旋轉。標籤一般隨接頭旋轉，<code>LABEL_POS OUTSIDE</code> 的文字保持水平。</p>
+<p><code>STYLE P</code> 或 <code>STYLE PLUG</code> 指定公頭，<code>STYLE S</code> 或 <code>STYLE SOCKET</code> 指定母座。<code>CN -RJ RJ45 STYLE P</code> 在原點繪製 RJ45 公頭。<code>STYLE</code> 可寫在位置前後，也可獨立寫在子行。舊檔的 <code>SUBTYPE</code> 可繼續讀取，型別後單獨的 <code>P</code>、<code>S</code>、<code>PLUG</code> 或 <code>SOCKET</code> 須補上 <code>STYLE</code>。</p>
+<p>省略位置時使用原點。一般模板預設 <code>SOCKET</code>。<code>MDR50M_SOLDER</code> 及其別名固定為 <code>PLUG</code>。D-sub 依公母選擇預設首腳方向，其他模板沿用各自的腳位排列。</p>
+
+<h3 id="at">AT 九宮格定位</h3>
+<p>在 <code>CN</code> 宣告中，可用 <code>AT K1</code> 至 <code>AT K9</code> 快速定位接頭。位置以當前 <code>VIEW</code> 的 BODY 正投影為準。</p>
+<table>
+<thead>
+<tr>
+<th>左側</th>
+<th>中央</th>
+<th>右側</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K7 左上</td>
+<td>K8 上方置中</td>
+<td>K9 右上</td>
+</tr>
+<tr>
+<td>K4 左方置中</td>
+<td>K5 正中央</td>
+<td>K6 右方置中</td>
+</tr>
+<tr>
+<td>K1 左下</td>
+<td>K2 下方置中</td>
+<td>K3 右下</td>
+</tr>
+</tbody>
+</table>
+<p>外側位置讓接頭外框沿指定方向對齊 BODY 邊緣，靠內放置，預設留距為 0 mm。中央方向讓接頭外框在該軸置中。計算會套用接頭的幾何設定與 <code>ROT</code>，以旋轉後的外框包絡定位。標籤與名稱不參與計算。外框比該視圖的 BODY 大時，預覽器會顯示警告。</p>
+<p><code>AT K8</code> 決定整個接頭在視圖中的位置，<code>START</code> 決定 Pin 1，<code>LABEL_POS</code> 決定接點文字方向。需要指定座標或自行預留距離時，可用 <code>AT x,y</code>。</p>
+<pre><code class="language-text">PART STEPPER_DRV BODY 118 75 34
+CN TB6 @K8
+CN TB6 @K2
+</code></pre>
+<h3 id="section-1">模板</h3>
+<table>
+<thead>
+<tr>
+<th>模板</th>
+<th>排列</th>
+<th>預設 Pin 中心距</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IDC 加偶數總腳數，如 IDC32</td>
+<td>雙排，IDC32 為 2 × 16</td>
+<td>2.54 mm</td>
+</tr>
+<tr>
+<td>DE9、DB9</td>
+<td>上排 5、下排 4，圓角 D-sub</td>
+<td>水平 2.77 mm、排距 2.84 mm</td>
+</tr>
+<tr>
+<td>DB25、DSUB25</td>
+<td>上排 13、下排 12，圓角 D-sub 示意</td>
+<td>水平 2.77 mm、排距 2.84 mm</td>
+</tr>
+<tr>
+<td>MDR20、MDR26、SCSI26、MDR50</td>
+<td>2 × 10／13／13／25，簡化 MDR</td>
+<td>1.27 mm</td>
+</tr>
+<tr>
+<td>G57-24</td>
+<td>2 × 12，通用示意</td>
+<td>2.54 mm</td>
+</tr>
+<tr>
+<td>G50</td>
+<td>2 × 25，通用示意</td>
+<td>2.54 mm</td>
+</tr>
+<tr><td>MDR50M_SOLDER</td><td>MDR 50 Pin 外框與四列交錯焊接腳位</td><td>2.54 mm（同列）</td></tr>
+<tr>
+<td>TB2、TB3、TB4、TB6、TB8</td>
+<td>1 × 2／3／4／6／8</td>
+<td>7.5 mm</td>
+</tr>
+<tr>
+<td>TB4_2X2</td>
+<td>2 × 2</td>
+<td>4.2 mm</td>
+</tr>
+<tr>
+<td>TB6_2X3</td>
+<td>2 × 3</td>
+<td>7.62 mm</td>
+</tr>
+<tr>
+<td>TB8_2X4</td>
+<td>2 × 4</td>
+<td>3.5 mm</td>
+</tr>
+<tr>
+<td>TB26、TB28</td>
+<td>2 × 13／14</td>
+<td>4.38／4.18 mm</td>
+</tr>
+<tr>
+<td>RJ45</td>
+<td>8 個沿長直邊排列的矩形接點</td>
+<td>1.02 mm</td>
+</tr>
+<tr>
+<td>USB_MINIB</td>
+<td>1 × 5，USB Mini-B 母座，繪製斜肩開口與接點</td>
+<td>0.8 mm</td>
+</tr>
+<tr>
+<td>USB_MICROB</td>
+<td>1 × 5，Micro USB Type-B 母座，繪製斜角開口與接點</td>
+<td>0.65 mm</td>
+</tr>
+</tbody>
+</table>
+<p><code>IDC</code> 後接 2～1000 的偶數總腳數，例如 <code>CN IDC32</code> 或 <code>CN IDC64</code>。雙排 IDC 使用通用缺口輪廓，預設水平腳距和垂直排距皆為 2.54 mm，可用 <code>PITCH</code> 和 <code>ROW_PITCH</code> 調整。</p>
+<p>宣告 USB 接頭時，須指定實際的模板型別，例如 <code>USB_MINIB</code> 或 <code>USB_MICROB</code>。</p>
+<p>接頭只畫一圈最容易辨識的輪廓。RJ45 保留卡扣輪廓，DE／DB 保留圓角梯形護罩，MDR 保留有鍵位的護罩，IDC 的缺口畫在同一圈。針腳與 Pin 1 記號各自繪製。</p>
+<p>DE9 的護罩與接點依 9 Pin 母頭 DXF 正視圖重畫。預設護罩寬 16.30 mm、高 7.90 mm，圓角半徑 2.54 mm。DB25 以同樣的圓角和排距按腳數加寬，尺寸供示意。 <a href="../refs/refs_D-SUB-9F_D-SUB母頭.dxf">D-sub 9 Pin 母頭 DXF</a></p>
+<p><code>USB_MINIB</code> 的開口取自 <code>refs/fx5uj-40m_a.dxf</code> 的正視圖，寬 7.7 mm、高 3.9 mm。九宮格定位以開口輪廓為準。</p>
+<p>RJ45 母座外框採用 <code>RJ45-simple.dxf</code> 的八段輪廓。<code>ROT 0</code> 時卡扣側朝上，接點沿底部水平排列。此方向的局部座標依序為 <code>(5.9,2.675)</code>、<code>(5.9,-4.475)</code>、<code>(-5.9,-4.475)</code>、<code>(-5.9,2.675)</code>、<code>(-3.45,2.675)</code>、<code>(-3.45,4.475)</code>、<code>(3.45,4.475)</code>、<code>(3.45,2.675)</code>，閉合後以 <code>(0,0)</code> 定位。接點採通用 8P8C 示意間距，DXF 來源僅提供外框。RJ45 外框及接點間距固定，接點為無填色矩形。公頭使用帶斜肩卡扣的示意輪廓。<code>ROT 0</code> 時，EPART 的公頭與母座皆預設由左至右編為 Pin 1～8。</p>
+<p>預覽器的「CN 模板總覽」顯示各模板及別名的腳號，並排展示 RJ45 公頭與母座。IDC 列出部分尺寸作為範例。</p>
+<h3 id="dsub-rows">D-sub 殼型與排數</h3>
+<p>以接合面上的接點排數為準。殼型與接點密度一起決定配置。例如同為 15 腳的 <code>DA15</code> 是兩排，<code>DE15</code> 是三排。 <code>DB25P</code> 表示 25 腳公頭，EPART 寫作 <code>CN DB25 STYLE P</code>。總覽並列 <code>DB25 STYLE P</code> 與 <code>DB25 STYLE S</code>，兩者皆為 13＋12 腳。</p>
+<table>
+<thead>
+<tr><th>殼型</th><th>標準密度</th><th>高密度</th><th>ITT Cannon 2D 雙密度</th></tr>
+</thead>
+<tbody>
+<tr><td>E</td><td>DE9，9 腳，2 排</td><td>DE15（HD15），15 腳，3 排</td><td>2DE19，19 腳，3 排</td></tr>
+<tr><td>A</td><td>DA15，15 腳，2 排</td><td>DA26，26 腳，3 排</td><td>2DA31，31 腳，3 排</td></tr>
+<tr><td>B</td><td>DB25，25 腳，2 排</td><td>DB44，44 腳，3 排</td><td>2DB52，52 腳，3 排</td></tr>
+<tr><td>C</td><td>DC37，37 腳，2 排</td><td>DC62，62 腳，3 排</td><td>2DC79，79 腳，3 排</td></tr>
+<tr><td>D</td><td>DD50，50 腳，3 排</td><td>DD78，78 腳，4 排</td><td>2DD100，100 腳，4 排</td></tr>
+<tr><td>6 號殼</td><td>—</td><td>AMPLIMITE 104，104 腳，5 排</td><td>—</td></tr>
+</tbody>
+</table>
+<p>上表供辨識型號。目前 EPART 的 D-sub 繪圖模板為 <code>DE9</code>／<code>DB9</code> 和 <code>DB25</code>／<code>DSUB25</code>。 <a href="https://cdn.amphenol-cs.com/media/wysiwyg/files/documentation/customerpresentation/d_sub_productpresentation.pdf#page=3">Amphenol 殼型對照</a> · <a href="https://www.mouser.com/datasheet/3/867/1/ITT_Cannon_2D_D_Sub_Series_Brochure.pdf#page=5">ITT Cannon 2D 接點配置</a> · <a href="https://www.te.com/commerce/DocumentDelivery/DDEController?Action=srchrtrv&amp;DocFormat=pdf&amp;DocLang=English&amp;DocNm=204510&amp;DocType=Customer+Drawing&amp;PartCntxt=204510-1">TE 104 腳接合面圖</a></p>
+<h3 id="orderstartshapepin1">ORDER、START、SHAPE、PIN1</h3>
+<ul>
+<li><code>START K7|K9|K1|K3</code> 選擇局部未旋轉座標的左上、右上、左下、右下角。多數模板預設 <code>K7</code>，D-sub 母座預設 <code>K9</code>。單排接頭只區分左端和右端。</li>
+<li><code>ORDER ODD|ROW|COLUMN|REVERSE</code> 從 <code>START</code> 位置開始編號。<code>ODD</code> 和 <code>COLUMN</code> 逐欄走完各排。<code>ROW</code> 逐排且各排方向相同。<code>REVERSE</code> 逐排且各排交替方向，形成蛇形。多數模板預設 <code>ODD</code>。D-sub 預設 <code>ROW</code>，先排上排，再排下排。從接合面看，<code>PLUG</code> 預設從左開始，<code>SOCKET</code> 預設從右開始。下排置中，相對上排錯開半個 Pin 中心距。可用 <code>START</code> 明確指定首腳位置。</li>
+<li><code>SHAPE ROUND|SQUARE</code> 設定接點輪廓，預設 <code>ROUND</code>。RJ45 使用模板固定的矩形接點。</li>
+<li><code>PIN1 DOUBLE|SOLID|NONE</code> 設定 Pin 1 樣式。<code>DOUBLE</code> 為接頭預設，會加畫一層內框。<code>SOLID</code> 為保留的舊語法，在本版預覽仍以單層空心輪廓顯示。<code>NONE</code> 不加內框。</li>
+</ul>
+<p>這四個選項可寫在 CN 宣告行或子行。<code>ORDER</code> 與 <code>START</code> 只決定編號與對應標籤，接點的間距與外框尺寸由幾何參數決定。</p>
+<h3 id="pinend">PINEND</h3>
+<p><code>CN</code> 和 <code>TERMINAL</code> 預設為 <code>PINEND AUTO</code>。圓形末腳內畫半圓，矩形末腳內畫直角折線。前一腳位於水平或垂直方向時，折線有三邊。前一腳位於斜向時，折線用兩邊畫出角落。開口朝向前一腳的實體位置，例如 Pin 20 朝向 Pin 19。標記隨接頭旋轉，也會出現在 DXF。只有一腳，或兩腳位於同一點時，省略標記。</p>
+<p>可在宣告行或子行用 <code>PINEND ARC</code> 指定半圓，或用 <code>PINEND NONE</code> 關閉標記。</p>
+<h3 id="pitchrow_pitchstaggermargin">PITCH、ROW_PITCH、STAGGER、MARGIN</h3>
+<ul>
+<li><code>PITCH n</code> 改變相鄰接點的水平間距，<code>ROW_PITCH n</code> 改變兩排的垂直間距。請使用正值。D-sub 的預設排距為 2.84 mm，其他模板的預設排距等於其預設水平間距。</li>
+<li><code>STAGGER n</code> 將第二排沿局部 X 移動 <code>n × PITCH</code>。例如 <code>STAGGER -0.5</code> 向左移半個間距。</li>
+<li><code>MARGIN x</code> 或 <code>MARGIN x,y</code> 指定外框距最外側接點中心的左右、上下留量，須為正數。只給 <code>x</code> 時兩方向使用同值。計算外框時包含 <code>STAGGER</code> 後的接點位置。省略時使用模板外框。RJ45 和 USB 模板使用固定輪廓。</li>
+</ul>
+<h3 id="labellabel_rowspinpins">LABEL、LABEL_ROWS、PIN、PINS</h3>
+<ul>
+<li><code>LABEL L,PE,N,S/S,X0..X7</code> 按 Pin 1、Pin 2…分配標籤。可用逗號或空白分隔，<code>X0..X7</code> 會展開為 <code>X0</code> 至 <code>X7</code>。也支援反向範圍和步長，例如 <code>X7..X1 BY 2</code>。</li>
+<li><code>LABEL_ROWS A1..A10 / B1..B10</code> 按局部未旋轉的實體上排、下排分配，排內由左向右。排與排之間用兩側有空格的 <code>/</code> 分隔。<code>S/S</code> 始終是一個標籤。</li>
+<li><code>PIN 1 L &quot;AC line&quot;</code> 按實體 Pin 編號覆寫標籤與表格功能，說明可用單引號或雙引號。<code>PINS 1=L 2=PE 3=N</code> 可一次覆寫多個標籤。格式有誤或腳號超出模板範圍時，整行不套用並顯示行號。</li>
+<li>缺少的接頭標籤會回退至 Pin 編號，多出的標籤不顯示。數量警告依範圍展開後的結果計算，<code>LABEL_ROWS</code> 逐排核對。省略 <code>LABEL</code> 時不警告。</li>
+<li><code>LABEL NONE</code> 隱藏圖面接點文字，並讓表格 NAME 欄留白。接點、Pin 1 標記及表格功能仍可顯示。</li>
+</ul>
+<h3 id="label_pos">LABEL_POS</h3>
+<p><code>LABEL_POS</code> 選擇文字相對於接點的方向。九宮格和英文方位採用接頭的局部座標。可寫一個方向套用到各排，或以 <code>/</code> 或逗號分隔各排的方向。</p>
+<table>
+<thead>
+<tr>
+<th>左側</th>
+<th>中央</th>
+<th>右側</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K7 或 TOP_LEFT</td>
+<td>K8 或 ABOVE</td>
+<td>K9 或 TOP_RIGHT</td>
+</tr>
+<tr>
+<td>K4 或 LEFT</td>
+<td>K5 或 CENTER</td>
+<td>K6 或 RIGHT</td>
+</tr>
+<tr>
+<td>K1 或 BOTTOM_LEFT</td>
+<td>K2 或 BELOW</td>
+<td>K3 或 BOTTOM_RIGHT</td>
+</tr>
+</tbody>
+</table>
+<p><code>LABEL_POS K2 / K8</code> 表示文字放在<strong>實體上排的下方、實體下排的上方</strong>。排順序以未旋轉的接頭為準，與 <code>START</code> 選擇的角落無關。<code>START K1</code> 仍然從左下角開始編號。</p>
+<p><code>CN</code> 可用 <code>LABEL_POS OUTSIDE</code>。文字按旋轉後的接點位置分配至外框左側或右側，並保持水平。EXD2060EC 範例用 <code>TB8_2X4</code> 描述手冊中的兩排四欄，套用 <code>ROT 90</code> 後符合正視圖的安裝方向，Pin 1 位於左下角。</p>
+<p><code>MDR50M_SOLDER</code> 的腳號固定在焊點內。指定 <code>LABEL_POS</code> 時會顯示警告。</p>
+<p>省略方向或指定 <code>AUTO</code> 時，端子台上排文字在上方，下排文字在下方。其他一般接頭預設在上方，獨立端子預設在右方。RJ45 和 USB 預設省略接點文字，指定 <code>LABEL_POS</code> 才顯示。文字可能因間距和長度而重疊。</p>
+<h3 id="namefunction">NAME、FUNCTION</h3>
+<ul>
+<li>省略 <code>NAME</code> 或寫 <code>NAME NONE</code> 時不顯示接頭名稱。<code>NAME &quot;INPUT&quot; K6</code> 在接頭右側顯示文字。方位可用 K1～K9 或對應的英文方向，以視圖為準，文字保持水平。<code>TABLE</code> 可用明確指定或自動分配的 ID 查詢。</li>
+<li><code>FUNCTION &quot;Motor power&quot;</code> 設定接頭用途。只寫 <code>NAME &quot;INPUT&quot;</code> 時，名稱和用途一起顯示在接頭局部下方並隨接頭旋轉。有指定 NAME 方位時，圖面只顯示 NAME 文字。宣告行與子行都接受單引號或雙引號，宣告行上的多詞值須加引號。個別 Pin 的表格功能用 <code>PIN</code> 指定。</li>
+</ul>
+<h2 id="terminal">TERMINAL</h2>
+<pre><code class="language-text">TERMINAL name[,name...] AT x,y [PITCH mm] [ROT degrees] [SIZE mm] [SHAPE ROUND|SQUARE] [PIN1 DOUBLE|SOLID|NONE] [PINEND AUTO|ARC|NONE] [FUNCTION text]
+</code></pre>
+<p>獨立端子沒有共用接頭框。<code>AT</code> 指第一顆端子中心，後續端子沿局部 +X 按 <code>PITCH</code> 排列，再以 <code>ROT</code> 旋轉。每個宣告最多 100 顆端子。預設 <code>PITCH 10</code>、<code>SIZE 6</code>、<code>SHAPE ROUND</code>、<code>ROT 0</code>、<code>PIN1 NONE</code>。</p>
+<p><code>SIZE</code> 設定直徑或方形邊長。子行可用 <code>PITCH</code>、<code>SIZE</code>、<code>SHAPE</code>、<code>PIN1</code>、<code>PINEND</code>、<code>LABEL</code>、<code>LABEL_POS</code>、<code>PIN</code>、<code>PINS</code> 和 <code>FUNCTION</code>。初始標籤取自宣告的端子名稱。<code>FUNCTION</code> 可設定表格中各端子的預設功能，個別 <code>PIN</code> 定義優先。</p>
+<p>每個視圖依宣告順序自動分配 <code>T1</code>、<code>T2</code> 等 ID。表格中的 PIN 欄是宣告內的序號。</p>
+<h2 id="linkv0.4">LINK（v0.4 草案）</h2>
+<p><code>LINK</code> 表達模組的機構定位關係，例如並排貼合、正面擴充板與底板插槽。介面外形用於工程圖，定位點供組裝使用。並排模組可用 <code>LINK LEFT</code>／<code>LINK RIGHT</code> 表達貼齊位置，包含以擴充纜線通訊的模組。若需要單獨描繪纜線接頭，可用 <code>CN</code>。</p>
+<pre><code class="language-text">LINK [-ID [BY n]] TYPE @位置 [SIZE w,h] [PITCH p] [ROT deg] [ANCHOR x,y] [NAME &quot;文字&quot;|NONE]
+</code></pre>
+<ul>
+<li><code>LINK</code> 僅可宣告在 <code>VIEW FRONT</code>，省略 <code>VIEW</code> 時預設就是正視圖。</li>
+<li><code>@</code> 與 <code>AT</code> 等價，例如 <code>@-63,10</code>、<code>@ -63 10</code> 或 <code>AT -63,10</code>。<code>BACK</code> 可省略位置，預設介面中心為 <code>(0,0)</code>。</li>
+<li><code>SIZE</code>、<code>PITCH</code>、<code>ROT</code>、<code>ANCHOR</code>、<code>NAME</code> 可寫在宣告行或子行。<code>SIZE</code> 與 <code>ANCHOR</code> 各需要兩個數值，<code>PITCH</code> 與 <code>ROT</code> 各需要一個數值。<code>SIZE</code> 和 <code>PITCH</code> 必須大於零。</li>
+<li>明確指定的 ID 以 <code>-</code> 開頭，下一個字元必須是英文字母。建議沿用實物上的標示，例如 <code>-POWER</code>、<code>-CPU</code> 或 <code>-S0</code>。省略時，依宣告順序自動分配 <code>LINK1</code>、<code>LINK2</code> 等 ID。同一零件的 LINK ID 不得重複，查重時不分大小寫。</li>
+</ul>
+<h3 id="section-2">類型與預設定位點</h3>
+<table>
+<thead>
+<tr>
+<th>類型</th>
+<th>用途</th>
+<th>對接</th>
+<th>預設定位點</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RIGHT</code></td>
+<td>本體右側貼合，向右延伸</td>
+<td><code>LEFT</code></td>
+<td><code>(+W/2,y)</code></td>
+</tr>
+<tr>
+<td><code>LEFT</code></td>
+<td>本體左側貼合，向左延伸</td>
+<td><code>RIGHT</code></td>
+<td><code>(-W/2,y)</code></td>
+</tr>
+<tr>
+<td><code>FRONT</code></td>
+<td>正面可安裝區域，與附加零件疊畫</td>
+<td><code>BACK</code></td>
+<td>介面中心</td>
+</tr>
+<tr>
+<td><code>BACK</code></td>
+<td>本零件以背面接合，疊畫在主體上</td>
+<td><code>FRONT</code></td>
+<td>介面中心</td>
+</tr>
+</tbody>
+</table>
+<p><code>W</code> 為 BODY 寬度，<code>y</code> 為介面中心的 Y 座標。<code>ANCHOR x,y</code> 使用正視圖座標，可覆寫預設定位點。<code>TOP</code> 與 <code>BOTTOM</code> 是保留語法，本版會回報尚未支援。</p>
+<h3 id="section-3">九宮格與陣列</h3>
+<p><code>@K1</code> 至 <code>@K9</code> 採用 <a href="#at">CN 的九宮格配置</a>。有尺寸時，以旋轉後的介面輪廓包絡對齊 BODY 內側邊緣，中央方向置中。無尺寸時，以介面中心點對齊。九宮格決定繪圖位置，組裝定位點仍由 TYPE 或 <code>ANCHOR</code> 決定。例如 <code>LINK RIGHT @K4</code> 會畫在左側，預設定位點仍在右緣。工具接受位於本體範圍外的座標。</p>
+<p><code>-S0..S7</code> 依 <code>LABEL</code> 的範圍格式展開，也接受反向範圍及步長，例如 <code>LINK -S0..S6 BY 2 FRONT @ 0,0 PITCH 20</code>。每個陣列最多 100 個介面。<code>@</code> 或九宮格決定第一個介面的中心。其餘沿局部 +X 方向按 <code>PITCH</code> 排列，<code>ROT</code> 正值使陣列方向及介面外框逆時針旋轉。陣列有兩個以上介面時必須指定 <code>PITCH</code>。若有 <code>ANCHOR</code>，它是第一個介面的定位點，後續定位點沿陣列等距平移。</p>
+<h3 id="section-4">繪圖與匯出</h3>
+<p><code>SIZE</code> 定義紫色虛線的無填色輪廓。<code>RIGHT</code> 與 <code>LEFT</code> 另加朝對接方向的小箭頭。省略 <code>SIZE</code> 時，<code>RIGHT</code>、<code>LEFT</code>、<code>FRONT</code> 繪製位置標記，<code>BACK</code> 只保留定位資料。明確指定的 ID 預設顯示在介面旁，自動 ID 預設隱藏。用 <code>NAME &quot;文字&quot;</code> 覆寫圖面文字，或用 <code>NAME NONE</code> 隱藏。陣列的名稱覆寫套用於各介面。</p>
+<p><code>LINK</code> 外觀包含在 SVG 匯出。未來的 DXF 匯出預計使用 <code>EPART_LINK</code> 圖層與 AutoCAD 6 號色（洋紅）。</p>
+<h3 id="section-5">範例</h3>
+<p>CPU 的直接擴充介面與 HMI 網路埠。</p>
+<pre><code class="language-text">PART FX5UJ-40MT/ES
+BODY 130,90,83
+VIEW FRONT
+LINK -L LEFT @-63,10 SIZE 4,30
+LINK RIGHT @K6 SIZE 12,27  # 目測尺寸，暫置於右側中央
+LINK -BD FRONT @-20,0 SIZE 40,25
+CN -CN4 RJ45 @-45.7,-16.5 ROT 270
+  FUNCTION ETHERNET
+</code></pre>
+<p>用九宮格快速畫出左右兩側介面。</p>
+<pre><code class="language-text">PART SOME_PLC
+BODY 90 90 80
+LINK LEFT @K4 SIZE 4 30
+LINK RIGHT @K6 SIZE 4 30
+</code></pre>
+<p>擴充板以背面安裝於主機正面。省略 <code>SIZE</code> 可只記錄定位點。</p>
+<pre><code class="language-text">PART FX5-232-BD
+BODY 38,25,15
+VIEW FRONT
+LINK BACK
+</code></pre>
+<p>底板的電源、CPU 與等距插槽。</p>
+<pre><code class="language-text">PART Q38B
+BODY 328,98,44
+VIEW FRONT
+LINK -POWER FRONT @-136,0 SIZE 55,98
+LINK -CPU FRONT @-94,0 SIZE 27.4,98
+LINK -S0..S7 FRONT @-66,0 SIZE 27.4,98 PITCH 28
+</code></pre>
+<p>範例中的尺寸、座標與模板用來示範語法。</p>
+<p>FX5-8EX/ES 的端子中心取自 <code>refs/fx5-8e_a_inside.DXF</code>。以 BODY 中心為原點，兩欄的 X 為 0.4 mm 和 8.8 mm，欄內節距為 7.62 mm，右欄比左欄低 3.81 mm。端子台外框使用示意輪廓。</p>
+<h2 id="set-v0.4">SET 模組組合（v0.4 草案）</h2>
+<p><code>SET</code> 描述一組設備包含哪些模組，以及它們如何在實體上相接。適用於 PLC、遠端 I/O、底板和其他用 <code>LINK</code> 組合的設備。盤面位置由 ELAYOUT 引用組代號決定，接線由 EWIRING 引用成員代號和端子。SET 的組裝規則僅使用幾何定位，程式位址由使用者指定。各自獨立安裝在軌道上的零件，適合在 ELAYOUT 的 <code>RAIL</code> 下分別列出。</p>
+<pre><code class="language-text">SET -ID [ON 底板型號]
+  NAME &quot;文字&quot;
+  [-代號] 型號 [@介面]
+  + [-代號] 型號 [@介面]
+  ADDR [CN代號] 位址清單
+  EMPTY
+  BREAK
+</code></pre>
+<p>縮排可省略。<code>NAME</code> 若有使用，須緊接 SET 宣告，並以引號包住整組顯示名稱。<code>SET</code> 與 <code>PART</code> 可出現在同一文件中，順序不限。解析型號時優先採用文件內的 <code>PART</code> 定義，其次查找內建零件庫。找不到型號時會提示，並畫出標示型號的 40 × 90 mm 灰色佔位框。</p>
+<p>SET 和自訂成員代號以 <code>-</code> 開頭，其後須為英文字母，代號在同一文件中不分大小寫且須唯一。未寫成員代號時依模組出現順序使用 <code>-A1.1</code>、<code>-A1.2</code> 等。普通模組與 <code>+</code> 模組都計入順序，<code>EMPTY</code>、<code>BREAK</code> 和 <code>ON</code> 指定的底板本身不計入。</p>
+<h3 id="section-6">串接與疊裝</h3>
+<ul>
+<li>串接型省略 <code>ON</code>。第一個模組以 BODY 中心為原點，普通模組由左到右，讓前一個普通模組的 <code>LINK RIGHT</code> 和目前模組的 <code>LINK LEFT</code> 重合。</li>
+<li>若已定義的零件缺少對接的 LINK，預覽仍會顯示組合，並警告該側採用本體相應邊緣。可用 <code>LINK LEFT @K4</code> 或 <code>LINK RIGHT @K6</code> 補上定位。兩側都缺 LINK 時，兩台都有正視或背視的 <code>MOUNT DIN</code> 就對齊 DIN 高度，背視優先。其餘情況對齊本體中心高度。</li>
+<li><code>+</code> 把模組疊在同段最近的普通模組正面，讓主體的 <code>LINK FRONT</code> 和疊裝模組的 <code>LINK BACK</code> 重合。缺少介面的一側使用本體中心。多張疊裝模組依序取用主體尚未占用的 <code>FRONT</code>。後續普通模組仍接在原主體右側。</li>
+<li><code>@</code> 引用被接對象的 LINK ID，省略前綴 <code>-</code>。串接時查前一台的 <code>RIGHT</code>，疊裝時查主體的 <code>FRONT</code>，底板型查底板的 <code>FRONT</code>。指定的介面不存在或已占用時會提示，並採預設順序。<code>K1</code> 至 <code>K9</code> 保留給九宮格定位。</li>
+</ul>
+<h3 id="section-7">底板與分段</h3>
+<p><code>SET -ID ON 型號</code> 指定底板，底板中心為組裝原點。普通模組按宣告順序使用第一個尚未占用的 <code>FRONT</code> 插槽。<code>EMPTY</code> 占用下一槽，<code>@S6</code> 可先占用指定槽，後續未指定的模組仍從最前面的空槽接續。插槽用完後會提示，多出的模組由底板右側依序並排。串接型遇到 <code>EMPTY</code> 會提示並略過。</p>
+<p><code>BREAK</code> 將串接型拆成獨立段。有效的每一段都有自己的原點，可在預覽的視圖選單切換。段首、段尾或連續出現的 <code>BREAK</code> 會提示並略過。分段後必須先宣告普通模組才能疊裝或指定 <code>ADDR</code>。底板型使用 <code>BREAK</code> 會報錯。ELAYOUT 日後可按同一 SET 代號的出現次序放置各段。</p>
+<h3 id="section-8">程式位址</h3>
+<p><code>ADDR</code> 套用到最近宣告的模組，包含 <code>+</code> 模組。依接頭宣告順序及各接頭的 Pin 編號由小到大填入，可指定單個接頭，例如 <code>ADDR -X1 X30..X37</code>。清單與 <code>LABEL</code> 一樣可用逗號或空白分隔，支援範圍與 <code>BY</code> 步長。若指定的接頭 ID 在同一 PART 有多個候選，會列出視圖並報錯。數量不符時會提示，多出的位址略過，缺少的欄位留白。</p>
+<p>組裝圖下方的位址表並列實體 <code>NAME</code> 和 <code>ADDR</code>。每個成員的位址各自保存，同型號的其他成員可有不同位址。</p>
+<h3 id="section-9">範例</h3>
+<p>官方 <code>-A1</code> 範例先列出兩份完整 <code>PART</code> 定義，再用以下四行組裝。</p>
+<pre><code class="language-text">SET -A1
+  NAME &quot;PLC 主站&quot;
+  FX5UJ-40MT/ES
+  -A1.2 FX5-8EX/ES
+</code></pre>
+<p>第一台自動編為 <code>-A1.1</code>。右側模組中心為 <code>(85,0)</code>，貼齊後正視外形為 170 × 90 mm。FX5UJ 輸出端子使用參考圖確認的實體上下排。</p>
+<p>自訂零件可以只用本體尺寸參與組裝。</p>
+<pre><code class="language-text">PART MY_PLC BODY 90 90 80
+PART MY_IO8 BODY 30 90 80
+
+SET -A3
+  MY_PLC
+  MY_IO8
+  MY_IO8
+</code></pre>
+<p>底板和疊裝的介面選擇可用文件內的測試零件驗證。</p>
+<pre><code class="language-text">PART BASE
+BODY 100,90,40
+LINK -S0..S3 FRONT @-30,0 PITCH 20
+
+PART MODULE
+BODY 18,70,30
+LINK BACK
+LINK -BD FRONT @0,15
+
+PART BOARD
+BODY 10,15,5
+LINK BACK
+
+SET -A2 ON BASE
+  MODULE @S2
+  + BOARD @BD
+  EMPTY
+  MODULE
+</code></pre>
+<h2 id="ind-led">IND LED</h2>
+<p><code>IND LED</code> 繪製功能指示燈。名稱以逗號分隔，名稱含空白或逗號時用引號包住。既有的單顆引號寫法也可使用。</p>
+<pre><code class="language-text">IND LED 名稱[,名稱...] @位置 [PITCH mm] [ROT deg] [D diameter] [LABEL_POS 方向] [COLOR 色碼]
+</code></pre>
+<ul>
+<li><code>@</code> 或 <code>AT</code> 指定第一顆燈的中心，可用 <code>x,y</code> 或 <code>K1</code> 至 <code>K9</code>。九宮格依當前視圖的 BODY 和第一顆燈的圓形輪廓定位。</li>
+<li>後續指示燈按 <code>PITCH</code> 沿局部 +X 排列，再以 <code>ROT</code> 逆時針旋轉。預設 <code>PITCH 10</code>、<code>ROT 0</code>、<code>D 2</code>。<code>D</code> 和 <code>PITCH</code> 須為正數，單行最多 100 顆。</li>
+<li><code>D</code>、<code>PITCH</code>、<code>ROT</code>、<code>LABEL_POS</code>、<code>COLOR</code> 可按任意順序寫在位置之後，套用到該行所有指示燈。</li>
+<li>標籤預設在右側（<code>K6</code>）。可用 <code>K1</code> 至 <code>K9</code> 或與 CN 相同的英文方位。標籤方向以視圖為準，<code>ROT</code> 只旋轉排列方向。需沿用上方標籤時寫 <code>LABEL_POS K8</code>。</li>
+<li><code>COLOR</code> 支援 <code>GN</code>、<code>RD</code>、<code>YE</code>、<code>BU</code>、<code>WH</code> 和全名 <code>GREEN</code>、<code>RED</code>、<code>YELLOW</code>、<code>BLUE</code>、<code>WHITE</code>。省略時繪製中性色無填充輪廓。<a href="https://webstore.iec.ch/en/publication/66266">IEC 60757 色彩代號</a></li>
+</ul>
+<pre><code class="language-text">IND LED RUN @K9
+IND LED &quot;DC OK&quot;,ALARM @ 5,10 COLOR YE LABEL_POS K8 PITCH 6
+</code></pre>
+<p>FX5UJ 的前四顆狀態燈等距排列，第五顆另指定位置。</p>
+<pre><code class="language-text">IND LED PWR,ERR,P.RUN,CARD @42.5,5.5 PITCH 2.75 ROT -90 D 1.3
+IND LED SD/RD @42.5,-6.5 D 1.3
+</code></pre>
+<h2 id="mount">MOUNT</h2>
+<table>
+<thead>
+<tr>
+<th>語法</th>
+<th>圖面內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MOUNT HOLE AT x,y D diameter</code></td>
+<td>以 AT 為中心的圓孔</td>
+</tr>
+<tr>
+<td><code>MOUNT STUD AT x,y D diameter [L length]</code></td>
+<td>以 AT 為中心的螺柱。L 不影響正投影</td>
+</tr>
+<tr>
+<td><code>MOUNT SLOT AT x,y W width H height</code></td>
+<td>以 AT 為中心的長孔</td>
+</tr>
+<tr>
+<td><code>MOUNT SLOT AT x,y W width OPEN TOP</code> 或 <code>OPEN BOTTOM</code></td>
+<td>開口朝 BODY 上緣或下緣的 U 形槽</td>
+</tr>
+<tr>
+<td><code>MOUNT DIN AT x,y W width [H height]</code></td>
+<td>以 AT 為中心的 DIN 安裝投影。W 為水平跨度，H 為截面寬度</td>
+</tr>
+</tbody>
+</table>
+<p>單顆零件圖顯示安裝孔與螺柱的中心十字。SET 組裝圖只顯示輪廓。</p>
+<p>未指定時，<code>D</code>、<code>W</code>、<code>H</code> 分別使用 4、12、5 mm。對 35 mm DIN 軌，在背視圖使用 <code>H 35</code> 表示跨軌方向的尺寸。<code>W</code> 可依圖面所需的水平跨度指定。</p>
+<p>FX5UJ-40MT/ES 依原廠直接安裝圖，在正視圖標出兩個 Ø4.5 mm 螺絲孔，圓心為 <code>(-50,41)</code> 和 <code>(61,-41)</code>。背視圖的 DIN 軌中心沿用 DXF 的高度基準，水平跨度採示意值。<a href="https://dl.mitsubishielectric.com/dl/fa/document/manual/plcf/sh082206eng/sh082206engg.pdf">Mitsubishi FX5UJ 硬體手冊，直接安裝</a></p>
+<p>開口槽必須指定正數 <code>W</code>。<code>AT</code> 是半圓端的圓心，半徑為 <code>W/2</code>。槽的直邊連到指定的 BODY 邊緣，該段本體邊線由槽輪廓取代。槽深由圓心和邊緣的位置決定。開口槽須落在本體直邊範圍內，且彼此分開。</p>
+<pre><code class="language-text">BODY 34,134,77
+MOUNT SLOT @ -5,63 W 5 OPEN TOP
+MOUNT SLOT @ -5,-63 W 5 OPEN BOTTOM
+</code></pre>
+<h2 id="brandmodeltextbox">BRAND、MODEL、TEXT、BOX</h2>
+<p><code>BRAND &quot;Name&quot; AT x,y SIZE w,h</code>、<code>MODEL &quot;Model&quot; AT x,y SIZE w,h</code> 和 <code>TEXT &quot;Description&quot; AT x,y SIZE w,h</code> 都以指定中心和尺寸繪製一般字型文字。預覽器也支援 <code>BOX AT x,y SIZE w,h</code> 以指定中心繪製矩形。</p>
+<h2 id="tabletitle">TABLE、TITLE</h2>
+<p>在預覽開啟「拖曳模式」後，單一 PART 視圖可拖接頭、端子群或表頭。由同一行 <code>TABLE … SPLIT</code> 產生的表格會一起移動。共同圖面可拖整個零件，放手後更新 <code>PLACE</code>。拖曳空白處可平移圖面。</p>
+<p>點到可拖曳的物件時，DSL 編輯器會短暫高亮其宣告行。宣告行在可見範圍外時，編輯器會捲到該行。寫回座標時會保留當下的捲動位置。</p>
+<p>預設以 1 mm 為單位定位。邊緣或中心對齊時顯示提示線，位置由滑鼠與格線決定。按住 Shift 可用 0.1 mm 定位，按住 Alt 可隱藏提示線，按 Esc 可取消拖曳。放手後寫回原指令的定位座標，可用 Ctrl+Z 復原。表格以左上角定位，接頭與端子群沿用各自的定位點。</p>
+<p>開啟「拖曳模式」後，在單一 PART 視圖的空白處長按約半秒，可開啟環形插入選單。先選接頭、端子群、指示燈或安裝件，再選型號。RJ45 與 D-sub 接頭可接著選公頭或母座。插入位置取長按處的 1 mm 整數座標，指令寫入目前的 VIEW，可用 Ctrl+Z 復原。</p>
+<p><code>TABLE -X1 @ x,y</code> 放置指定接頭的功能表，<code>TABLE T1 @ x,y</code> 可指定獨立端子。既有的無前綴查詢（例如 <code>TABLE CN1 AT x,y</code>）在找不到同名目標時會查找 <code>-CN1</code>。定位點是表格左上角。表格顯示 PIN、NAME、FUNCTION，Pin 依編號排序。<code>TABLE ALL AT x,y</code> 包含同一視圖的接頭和獨立端子，並加上 CN 欄。<code>TITLE &quot;Pin assignment&quot;</code> 可接在 TABLE 下方覆寫標題。</p>
+<p>同一視圖可以先放 TABLE，再宣告目標接頭。目標不存在時會警告，並省略該表格。接頭表屬於零件預覽的視圖。將零件放入 SET 時，組裝圖可另外宣告自己的 TABLE。</p>
+<p><code>TABLE -CN1 K8 SPLIT</code> 把表格放在圖面上方置中，<code>K2</code> 放下方置中，其餘九宮格方位也可使用。九宮格定位可省略 <code>AT</code> 或 <code>@</code>。加上 <code>SPLIT</code> 時，左表列奇數 Pin，右表列偶數 Pin，各接頭在組內仍按實體 Pin 編號排序。</p>
+<p>在 <code>SPLIT</code> 後加群組，可指定每張表的 Pin。用 <code>/</code> 分隔各表，組內可用逗號或空白列出 Pin，例如 <code>1,3,5</code>，也可用 <code>1..25 BY 2</code> 表示從 1 到 25 每次加 2。步長須為正整數，省略時為 1。舊檔仍可使用 <code>:2</code> 步長寫法。各表由左至右依群組順序放置，只顯示指定的 Pin。重複指定同一 Pin 會報錯。預覽器的「50 Pin 焊接表（四組）」使用台達 ASDA-A2 的 CN1 腳位。NAME 欄的一般腳位採原廠信號名稱，DI／DO 採 PT 模式預設功能。DO 名稱保留正負極性。焊點依線端示意圖由左至右分成 2–24 偶數、1–25 奇數、27–49 奇數、26–50 偶數。接頭圖內顯示腳號，表格顯示 NAME。MDR 公頭外框依原廠圖面重建，焊接腳位仍為示意。MDR50M_SOLDER 可用於採相同接頭和焊點排列的設備，信號名稱由各設備的 PINS 定義。SCSI50 和舊名 ASDA_A2_CN1 為同一模板的別名。原有的 MDR26 與 SCSI26 是未區分公母的通用模板。外形來源為 <a href="https://multimedia.3m.com/mws/media/22367O/3mtm-mdr-050-solder-plug-connector-shielded-ts0669.pdf">3M TS-0669</a>。</p>
+<pre><code>TABLE -CN1 K2 SPLIT 2..24 BY 2 / 1..25 BY 2 / 27..49 BY 2 / 26..50 BY 2</code></pre>
+<p>TABLE 下方可直接貼兩欄 CSV，每筆一行，不需縮排。第一欄為位址或端子標示，第二欄為用途。單一接頭表也可用實體 Pin 編號。用途含逗號時用雙引號包住，欄內的雙引號寫成兩個。首列可用 <code>ADDR,FUNCTION</code> 或 <code>Address,Comment</code> 作為欄名。找不到對應 Pin 或對應到多個 Pin 時會提示。</p>
+<p>組裝表寫在 SET 成員宣告之後，或另立一段引用 SET 代號。位址優先查成員的 <code>ADDR</code>，未指定 ADDR 的 Pin 可用原廠端子標示。位址精確比對，<code>X00</code> 和 <code>X0</code> 各自保留。表格顯示有位址對應的接頭和該接頭的其他 Pin。有明確 TABLE 的組裝段使用指定位置，其餘段沿用自動位址表。</p>
+<pre><code>TABLE -A1 K2 SPLIT
+  TITLE "I/O 焊接表"
+X00,急停
+X01,啟動
+X02,"手動,低速"
+</code></pre>
+<h2 id="svg">SVG 與檔案</h2>
+<p>下載檔名中的 <code>/</code> 會換成全形 <code>／</code>，例如 <code>FX5UJ-40MT／ES.epart</code>。其他 Windows 保留字元換成底線。原廠型號在 DSL 與圖面文字中保留 <code>FX5UJ-40MT/ES</code>。</p>
+<p>成組數值可使用逗號、空白或兩者混合分隔，數量須符合各指令定義。儲存有效的 <code>.epart</code> 時，成組數值會統一使用逗號且逗號旁無空白，編輯器原文、引號文字與註解會保留。有解析錯誤時則儲存原文。</p>
+<p>預覽器可開啟及儲存 <code>.epart</code> 文字檔，並匯出當前視圖的 SVG。匯出檔的 <code>width</code> 和 <code>height</code> 以 mm 標示，數值對應 <code>viewBox</code> 的寬與高，因此一個 SVG 使用者單位對應 1 mm。SVG 圖框會納入本體外的安裝結構、文字與接頭標籤，並包含表格和圖面留白。預覽預設適合視窗。可用滾輪以游標為中心縮放，或用 ＋、− 按鈕調整。拖曳可平移，按「還原」可回到完整圖面。鍵盤焦點在圖面上時，可用方向鍵、＋、− 和 Home 操作。SVG 依完整圖面的尺寸匯出。</p>
+<p>DXF 匯出目前支援單一 PART 的當前視圖。圖面採 AutoCAD 2007 DXF 格式、毫米單位、BODY 中心為原點，X 向右、Y 向上。本體、安裝結構、接頭外框、針腳、文字與指示燈分別放在 EPART_BODY、EPART_MOUNT、EPART_CONNECTOR、EPART_PIN、EPART_TEXT、EPART_INDICATOR 圖層。TABLE、LINK、預覽輔助線、SET 和 PLACE 共同圖面由 SVG 匯出。DXF 文字保留 Unicode，顯示取決於 CAD 使用的字型。</p>
+<h2 id="section-10">通用範例</h2>
+<pre><code class="language-text"># Bytes EPART DSL — demo only, not manufacturer-certified
+PART SAMPLE_SERVO
+BODY 120 180 65
+
+VIEW FRONT
+CN -CN1 IDC20 AT -28,48
+  LABEL_ROWS A1..A10 / B1..B10
+  PIN 1 SG &quot;Signal ground&quot;
+  PIN 2 24V &quot;Control power&quot;
+CN -CN2 DE9 STYLE S AT 30,-32 ROT 90
+  PIN 1 RX &quot;Receive&quot;
+  PIN 2 TX &quot;Transmit&quot;
+MOUNT HOLE AT -48,76 D 5
+MOUNT HOLE AT 48,76 D 5
+MOUNT HOLE AT -48,-76 D 5
+MOUNT HOLE AT 48,-76 D 5
+TABLE -CN1 AT 90,72
+  TITLE &quot;CN1 Pin Functions&quot;
+
+VIEW RIGHT
+CN -CN3 TB3 AT 0,36
+  PINS 1=L 2=G 3=N
+  PIN 1 L &quot;AC line&quot;
+  PIN 2 G &quot;Ground&quot;
+  PIN 3 N &quot;Neutral&quot;
+TABLE -CN3 AT 48,60
+</code></pre>
+</body></html>

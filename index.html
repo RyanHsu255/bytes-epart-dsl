@@ -1,0 +1,3069 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bytes EPART DSL — Preview Studio</title><style>
+:root{color-scheme:dark;--bg:#0b1120;--panel:#111b2c;--panel2:#172339;--line:#31415b;--ink:#e8f0ff;--muted:#98aac6;--accent:#4bd5bd;--warn:#ffbd69}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}header{border-bottom:1px solid var(--line);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:19px;margin:0;letter-spacing:.3px}h1 span{color:var(--accent)}header small{color:var(--muted)}button,.filebtn,select{border:1px solid var(--line);background:var(--panel2);border-radius:8px;color:var(--ink);padding:8px 12px;cursor:pointer;font:inherit}button:hover,.filebtn:hover{border-color:var(--accent)}button.primary{background:#147f76;border-color:#147f76}.toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}main{height:calc(100dvh - 71px);min-height:610px;display:grid;grid-template-columns:minmax(350px,42%) minmax(400px,1fr)}section{min-width:0;display:flex;flex-direction:column}section:first-child{border-right:1px solid var(--line)}.section-head{padding:11px 16px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.section-head strong{font-size:13px}.note{color:var(--muted);font-size:12px}textarea{width:100%;height:100%;resize:none;flex:1;background:#0e1726;color:#dce9fa;border:0;outline:0;padding:18px 21px;font:13px/1.78 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}.errorbox{height:112px;min-height:112px;background:var(--panel);border-top:1px solid var(--line);overflow:auto;padding:9px 15px;font:12px/1.6 ui-monospace,monospace;color:var(--muted)}.errorbox .err{color:#ff9999}.errorbox .warn{color:var(--warn)}.preview{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background-color:#f7fafc;background-image:linear-gradient(#e5eaf0 1px,transparent 1px),linear-gradient(90deg,#e5eaf0 1px,transparent 1px);background-size:24px 24px;overflow:auto}.preview svg{position:absolute;inset:0;width:100%;height:100%;min-height:0;display:block}.preview-foot{background:var(--panel);padding:11px 16px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}details{border-top:1px solid var(--line);background:var(--panel);padding:9px 15px}summary{cursor:pointer;font-weight:600}pre.doc{white-space:pre-wrap;margin:8px 0;color:var(--muted);font-size:12px}kbd{font:12px ui-monospace,monospace;background:#243249;padding:2px 5px;border-radius:4px}.pill{border:1px solid #327b73;color:#88e6d5;padding:2px 8px;border-radius:16px;font-size:11px}@media(max-width:850px){main{height:auto;display:flex;flex-direction:column}section:first-child{border-right:0;border-bottom:1px solid var(--line)}textarea{height:430px;flex:none}.preview{height:490px;flex:none}.errorbox{height:95px;min-height:95px}}
+button:disabled{opacity:.55;cursor:default}.errorbox .diagnostic{display:block;width:100%;text-align:left;padding:0;border:0;border-radius:0;background:transparent}.errorbox .diagnostic:hover{text-decoration:underline}.errorbox .diagnostic:focus-visible{outline:1px solid var(--accent)}
+.preview{cursor:grab;touch-action:none;user-select:none}.preview.is-dragging{cursor:grabbing}.preview:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}.preview-controls{display:inline-flex;gap:4px}.preview-controls button{padding:4px 8px}.preview-controls button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.preview.move-mode [data-table-header],.preview.move-mode [data-move-object]{cursor:move}.preview:not(.move-mode) [data-table-header]{pointer-events:none}.preview.is-dragging [data-table-header]{cursor:grabbing}.section-head:has(.preview-controls){flex-wrap:wrap}
+
+.insert-overlay{position:absolute;inset:0;z-index:4;background:rgb(15 23 42 / .13);overflow:hidden;cursor:default}
+.insert-ring,.insert-picker{position:absolute;color:#e7f4fb;background:#101e31;border:1px solid #41617a;box-shadow:0 10px 28px #0b172866}
+.insert-ring{width:min(236px,calc(100% - 16px));height:min(236px,calc(100% - 16px));border-radius:50%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);place-items:center;box-sizing:border-box;padding:10px;background:radial-gradient(circle,#1a3650 0 25%,#101e31 26% 68%,#27455a 69% 70%,#101e31 71%)}
+.insert-center{grid-area:2/2;text-align:center;line-height:1.35}
+.insert-center strong{display:block;font-size:16px}
+.insert-overlay small{display:block;font:11px ui-monospace,monospace;color:#8bcbbf}
+.insert-ring button{min-width:54px;padding:5px 4px;line-height:1.15}
+.insert-ring button:nth-of-type(1){grid-area:1/2}
+.insert-ring button:nth-of-type(2){grid-area:2/3}
+.insert-ring button:nth-of-type(3){grid-area:3/2}
+.insert-ring button:nth-of-type(4){grid-area:2/1}
+.insert-overlay button{border:1px solid #3a5d77;background:#172b43;color:#e7f4fb;border-radius:6px}
+.insert-overlay button:hover,.insert-overlay button:focus-visible{border-color:#74dfcb;background:#234458;outline:2px solid transparent}
+.insert-picker{box-sizing:border-box;width:min(258px,calc(100% - 16px));max-height:calc(100% - 16px);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.insert-picker header{display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #34526a}
+.insert-picker header strong{flex:1;font-size:14px}
+.insert-picker header button{min-width:34px;min-height:34px}
+.insert-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:8px;max-height:248px;min-height:0;overflow:auto;touch-action:pan-y}
+.insert-choices button{min-height:34px;overflow-wrap:anywhere}
+.editor-surface{position:relative;flex:1;min-height:0;overflow:hidden}
+.editor-surface textarea{display:block}
+.editor-pulse{position:absolute;inset-inline:0;pointer-events:none;opacity:0;background:#4bd5bd55;box-shadow:inset 3px 0 #4bd5bd}
+@media(max-width:850px){.editor-surface{flex:none;height:430px}}
+.language-dialog{width:min(520px,calc(100% - 32px));padding:clamp(20px,5vw,32px);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:10px;background:var(--panel);color:var(--ink);box-shadow:0 24px 80px #050a16b3}
+.language-dialog::backdrop{background:#0b1120db}
+.language-dialog h2{margin:0 0 20px;font-size:clamp(17px,4vw,22px)}
+.language-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.language-choices button{min-height:76px;padding:8px;font-size:clamp(16px,4vw,23px);font-weight:650}
+.language-dialog button:focus-visible,.language-choices button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
+.language-close{margin-top:16px}
+.about-trigger{padding:2px 4px;margin-left:-4px;border:0;background:transparent;text-align:left;font:inherit}
+.about-trigger:hover .about-name{text-decoration:underline;text-underline-offset:4px}
+.about-trigger:focus-visible,.about-dialog a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.about-dialog h2{margin-bottom:4px}
+.about-dialog h3{margin:16px 0 4px;font-size:14px}
+.about-dialog p,.about-dialog ul{margin:8px 0;color:var(--muted)}
+.about-dialog ul{padding-inline-start:20px}
+.about-dialog a{color:var(--accent);overflow-wrap:anywhere}
+.about-dialog button{margin-top:14px}
+</style></head><body><header><div><h1>Bytes <span>EPART DSL</span> <span class="pill">v0.4 Draft</span></h1><small>Electrical Part Description Language · 2D 元件簡圖預覽器</small></div><div class="toolbar"><label class="note" for="exampleSelect">範例</label><select id="exampleSelect" aria-label="選擇元件範例"><option value="plc">Mitsubishi FX5UJ-40MT/ES</option><option value="servo">Delta ASDA-A2 400W</option><option value="ioTable">I/O 表格（CSV／奇偶分離）</option><option value="split50">50 Pin 焊接表（四組）</option><option value="terminal">獨立端子示範 (單顆／雙顆)</option><option value="a1">-A1 Mitsubishi PLC 組合</option><option value="fx58ex">Mitsubishi FX5-8EX/ES</option><option value="exd2060ec">EXD2060EC</option><option value="stepper">步進驅動器（簡單）</option><option value="original">原始通用範例</option><option value="cnCatalog">CN 模板總覽</option></select><button id="exBtn">重新載入範例</button><label class="filebtn" for="upload">開啟 .epart<input id="upload" type="file" accept=".epart,.txt" hidden></label><button id="saveBtn">儲存語法</button><button id="svgBtn" class="primary">匯出 SVG</button><button id="dxfBtn">匯出 DXF</button></div></header><main><section><div class="section-head"><strong>DSL 編輯器</strong><span class="note">修改後即時預覽 · mm</span></div><div class="editor-surface" id="editorSurface"><textarea id="editor" spellcheck="false" aria-label="EPART DSL 編輯器"></textarea><div class="editor-pulse" id="editorPulse" aria-hidden="true"></div></div><div class="errorbox" id="status" role="status">準備解析</div><details><summary>語法快速參考</summary><pre class="doc">PART name
+BODY width height [depth]  # 尺寸須大於 0，也可合寫 PART name BODY 130,90,83
+VIEW FRONT | RIGHT | BACK | LEFT | TOP | BOTTOM
+TERMINAL U,V AT -30,-35 PITCH 16 ROT 90
+  SHAPE ROUND
+  SIZE 6
+  LABEL_POS K6  # 單顆、多顆皆可，無外框
+LINK RIGHT @K6 SIZE 4,30  # 模組貼合介面，僅限 FRONT
+CN -CN1 IDC20 AT -20,30 ROT 90 ORDER ROW
+  START K1  # Pin 1 左下；亦可 K7/K9/K3
+  LABEL A1..A10,B1..B10  # 按 Pin 1 起點的自然順序輸入
+  NAME "INPUT" K6  # 接頭名稱置右，省略 NAME 則不顯示
+  LABEL_POS K2 / K8  # 實體上排下方、實體下排上方
+  # LEFT RIGHT TOP_LEFT TOP_RIGHT BOTTOM_LEFT BOTTOM_RIGHT
+  PIN 1 VCC "Power input"
+  PINS 2=GND 3=IN0
+  PITCH 2.54
+  ROW_PITCH 2.54
+  STAGGER 0.5
+  MARGIN 4,3
+  LABEL NONE  # 不顯示端子名稱；可省略此行
+BRAND "MITSUBISHI" AT 0,12 SIZE 55,6
+MODEL "FX5UJ-40MT/ES" AT 0,4 SIZE 38,4
+TEXT "PLC" AT 0,-10 SIZE 20,4
+BOX AT 0,0 SIZE 70,30
+IND LED RUN @K9
+MOUNT HOLE AT -30,40 D 4.5
+MOUNT STUD AT 30,40 D 4 L 12
+MOUNT SLOT AT 0,-40 W 12 H 5
+MOUNT DIN AT 0,0 W 80 H 35
+TABLE -CN1 AT 90,65
+TABLE T1 AT 90,15  # 獨立端子也可產生表格
+  TITLE "CN1 pin function"
+
+BODY、AT、SIZE、MARGIN、ANCHOR 的多個數值可用空格或逗號分隔，另存時統一用逗號。
+BODY W H [D] HIDE 保留定位尺寸並隱藏本體外框，適合單獨繪製接頭。
+視圖各自以中心為 (0,0)，X 向右、Y 向上。
+AT 通常定位到連接器中心。錯列端子台以未錯列的針腳格中心定位，RJ45 使用模板原點。
+CN 接頭 ID 可省略，依各視圖自動編為 -CN1、-CN2 等，略過已明寫的 ID。明寫時以 - 開頭。
+CN -RJ RJ45 STYLE P 在原點繪製 RJ45 公頭。用 STYLE P 或 STYLE PLUG 指定公頭，用 STYLE S 或 STYLE SOCKET 指定母座。
+RJ45 公頭和母座在 ROT 0 時皆預設由左至右編為 Pin 1～8。
+CN 省略位置時使用原點。預設 SOCKET，MDR50M_SOLDER 固定為 PLUG。
+IDC 後接偶數總腳數（2～1000）。CN IDC32 繪製 2 × 16，預設間距 2.54 mm。
+@ 等效於 AT。CN TB6 @K8 依 BODY 視圖九宮格定位；K8 靠上置中，K2 靠下置中，K5 居中。
+TERMINAL AT 為第一顆端子中心，TABLE AT 為表格左上角。
+TABLE -CN1 K8 SPLIT 會在圖面上方分開列出奇數與偶數 Pin，K2 放下方。
+開啟「拖曳模式」後，單一 PART 可拖接頭、端子或表頭，共同圖面可拖整個零件。預設以 1 mm 定位。空白處長按可插入。對齊時顯示提示線。Shift 精細定位，Alt 隱藏提示線，Esc 取消。
+TABLE -A1 K2 SPLIT 可引用 SET。表格下方可直接貼 CSV，例如 X00,急停。
+TABLE -CN1 K2 SPLIT 2..24 BY 2 / 1..25 BY 2 / 27..49 BY 2 / 26..50 BY 2 可指定四組 Pin。
+BY 指定範圍步長。LABEL X7..X1 BY 2 由 X7 開始每隔兩個取一個。
+MARGIN x[,y]：最外端 Pin 中心至外框的左右／上下距離（mm），交錯排列亦適用。
+不寫 LABEL 顯示 Pin 編號；RJ45、USB 預設隱藏接點文字。LABEL NONE 隱藏接點文字，Pin 1 識別仍保留。
+LABEL_POS 支援 AUTO、K1～K9 或英文方向。CN 可用 OUTSIDE 將接點文字水平排在外框兩側。
+MDR50M_SOLDER 的腳號固定在焊點內，指定 LABEL_POS 時會提示。
+PIN 的說明可用單引號或雙引號。PIN、PINS 的格式錯誤與越界腳號會顯示行號。
+使用空格 / 空格分隔各排，以未旋轉的實體上排到下排為準，與 START 無關。
+NAME "文字" [方位] 顯示接頭名稱，方位可用 K1～K9 或英文方向。NAME NONE 隱藏。TABLE 使用接頭 ID，例如 TABLE -CN1 @ 90,65。
+D-sub 採圓角梯形護罩，長排在上、短排置中，預設 ORDER ROW。
+START K7/K9/K1/K3 同時決定 Pin 1 的實體位置與 LABEL 的排列起點。預設 K7（左上）。ORDER ODD 沿同欄上下交錯；ORDER ROW 先排一整排。LABEL 按 Pin 1、Pin 2…自然順序，LABEL_ROWS 仍可明確指定各排。
+CN 的 Pin 1 預設使用雙重輪廓（圓形或方形），可用 SHAPE 和 PIN1 覆寫。
+CN 與 TERMINAL 預設 PINEND AUTO，圓形接點用半圓，矩形用直角折線。開口朝向前一腳。PINEND ARC 指定半圓，PINEND NONE 關閉。
+BRAND "Name" AT x,y SIZE w,h
+MODEL "Model" AT x,y SIZE w,h
+TEXT "Any text" AT x,y SIZE w,h
+BOX AT x,y SIZE w,h
+
+PART MY_PLC BODY 90 90 80
+PART MY_IO8 BODY 30 90 80
+SET -A3
+  MY_PLC
+  MY_IO8
+
+多個 PART 各自以本體中心為 (0,0)。用 PLACE A @0,0 指定 A 在共同圖面上的中心座標。
+SET 優先使用文件中的 PART。並排缺少 LINK 時按本體邊緣貼齊並顯示警告；找不到型號時以灰框代替。
+範例中的品牌文字以通用字型表示，非原廠商標圖樣。
+FX5UJ 正視圖端子座標由使用者提供的 DXF 量測；Logo 以一般字型文字近似。連接器外框、Logo 與背面安裝仍為示意。</pre></details></section><section><div class="section-head"><strong>圖面預覽</strong><div class="toolbar"><select id="viewSelect" aria-label="選擇視圖"></select><div class="preview-controls" role="group" aria-label="圖面縮放"><button type="button" id="zoomOut" aria-label="縮小圖面" title="縮小">−</button><button type="button" id="zoomIn" aria-label="放大圖面" title="放大">+</button><button type="button" id="zoomReset" title="還原至適合視窗">還原</button><button type="button" id="moveObjects" aria-pressed="false" title="拖曳接頭、零件或表頭。空白處長按插入。Shift 精細定位，Alt 隱藏提示線，Esc 取消。">拖曳模式</button></div></div></div><div class="preview" id="preview" tabindex="0" role="region" aria-label="圖面預覽，可用滾輪縮放與拖曳平移"></div><div class="preview-foot"><span id="info">—</span><span>BODY 原點固定在中心 · SVG 可匯出 · DXF 支援單一 PART 視圖</span></div></section></main><script>
+'use strict';
+const EXAMPLE=`# Bytes EPART DSL — demo only, not manufacturer-certified
+PART SAMPLE_SERVO
+BODY 120 180 65
+
+VIEW FRONT
+CN -CN1 IDC20 AT -28,48
+  LABEL_ROWS A1..A10 / B1..B10
+  PIN 1 SG "Signal ground"
+  PIN 2 24V "Control power"
+CN -CN2 DE9 STYLE S AT 30,-32 ROT 90
+  PIN 1 RX "Receive"
+  PIN 2 TX "Transmit"
+MOUNT HOLE AT -48,76 D 5
+MOUNT HOLE AT 48,76 D 5
+MOUNT HOLE AT -48,-76 D 5
+MOUNT HOLE AT 48,-76 D 5
+TABLE -CN1 AT 90,72
+  TITLE "CN1 Pin Functions"
+
+VIEW RIGHT
+CN -CN3 TB3 AT 0,36
+  PINS 1=L 2=G 3=N
+  PIN 1 L "AC line"
+  PIN 2 G "Ground"
+  PIN 3 N "Neutral"
+TABLE -CN3 AT 48,60`;
+const SAMPLES={
+split50:`# Delta ASDA-A2 CN1。依台達手冊 §3.4.1 和表 3.1、3.2。
+# DI／DO 採 PT 模式預設功能。外框參照 3M 10150-3000PE，四列為焊接端示意。
+PART ASDA-A2-CN1 BODY 42,82,20 HIDE
+CN -CN1 MDR50M_SOLDER STYLE P @K5
+  PINS 1=TPOS+ 2=HOME- 3=HOME+ 4=ZSPD- 5=ZSPD+ 6=SRDY- 7=SRDY+ 8=TCM1 9=SON 10=CCLR
+  PINS 11=COM+ 12=GND 13=GND 14=NC 15=MON2 16=MON1 17=VDD 18=T_REF 19=GND 20=VCC
+  PINS 21=OA 22=/OA 23=/OB 24=/OZ 25=OB 26=TPOS- 27=ALRM- 28=ALRM+ 29=/HPULSE 30=EMGS
+  PINS 31=PL 32=NL 33=ARST 34=TCM0 35=PULL_HI_S 36=SIGN 37=/SIGN 38=HPULSE 39=PULL_HI_P 40=/HSIGN
+  PINS 41=/PULSE 42=V_REF 43=PULSE 44=GND 45=COM- 46=HSIGN 47=COM- 48=OCZ 49=COM- 50=OZ
+
+TABLE -CN1 K2 SPLIT 2..24 BY 2 / 1..25 BY 2 / 27..49 BY 2 / 26..50 BY 2
+  TITLE "ASDA-A2 CN1 · PT"`,
+ioTable:`# 示意接頭，Pin 1～6 依序對應 A1、B1、A2、B2、A3、B3。
+PART IO-DEMO BODY 60,35,20
+CN -CN1 TB6_2X3 @K5
+  LABEL_ROWS A1,A2,A3 / B1,B2,B3
+
+SET -A1
+  IO-DEMO
+  ADDR -CN1 X00 X01 X02 X03 X04 X05
+
+TABLE -A1 K2 SPLIT
+  TITLE "I/O 焊接表"
+X00,急停
+X01,啟動
+X02,停止
+X03,復歸
+X04,"手動,低速"
+X05,自動`,
+a1:`SET -A1
+  NAME "PLC 主站"
+  FX5UJ-40MT/ES
+  -A1.2 FX5-8EX/ES`,
+fx58ex:`# Mitsubishi FX5-8EX/ES — refs/fx5-8ex_es_a.dxf and Mitsubishi hardware manual.
+# BODY, mounting holes and PWR LED from the exterior drawing.
+# Terminal centres measured from refs/fx5-8e_a_inside.DXF. Envelopes are schematic.
+# Physical column order checked against refs/fx5-8e.png; input labels follow the FX5-8EX/ES manual.
+PART FX5-8EX/ES
+BODY 40,90,83
+VIEW FRONT
+CN -X1 TB6_2X3 @ 4.6,30.15 ROT 90 PIN1 NONE
+  PITCH 7.62
+  ROW_PITCH 8.4
+  STAGGER -0.5
+  MARGIN 5.25,4
+  LABEL_ROWS X2,X0,• / X3,X1,S/S
+  LABEL_POS OUTSIDE
+CN -X2 TB6_2X3 @ 4.6,-26.25 ROT 90 PIN1 NONE
+  PITCH 7.62
+  ROW_PITCH 8.4
+  STAGGER -0.5
+  MARGIN 5.35,4
+  LABEL_ROWS X6,X4,• / X7,X5,•
+  LABEL_POS OUTSIDE
+MOUNT HOLE @ 0,40 D 4.5
+MOUNT HOLE @ 0,-40 D 4.5
+IND LED PWR @ 15.7,23 D 1.1 LABEL_POS K2
+MODEL "FX5-8EX/ES" @ 0,6 SIZE 20,2.2
+# Assembly datums for adjacent modules. The cable is omitted.
+LINK LEFT @ K4
+LINK RIGHT @ K6
+VIEW BACK
+MOUNT DIN @ 0,0 W 40 H 35`,
+exd2060ec:`# EXD2060EC — schematic measured from refs/EXD2060EC-2D.dxf
+# Drawing geometry scaled by 1.5 to match its 34 / 134 / 77 mm dimensions.
+# Connector envelopes are simplified. Pin identities follow the EXD2060EC manual V1.0.
+PART EXD2060EC
+BODY 34,134,77
+VIEW FRONT
+BRAND "EXTION" @ 0,53.8 SIZE 15.8,3.8
+CN -CN6 RJ45 @ -4.71,41.702 ROT 90 FUNCTION "EtherCAT OUT (B)"
+  NAME "ECAT OUT (B)" K6
+CN -CN5 RJ45 @ -4.71,25.192 ROT 90 FUNCTION "EtherCAT IN (A)"
+  NAME "ECAT IN (A)" K6
+IND LED ALARM @ -4.3,14.6 D 3 COLOR RD LABEL_POS K8
+IND LED RUN @ 0.7,14.6 D 3 COLOR GN LABEL_POS K8
+CN -CN7 USB_MICROB @ 2.1,6.8 ROT 90 FUNCTION "Micro USB-B debugging"
+  PIN1 NONE
+  NAME "CN7" K6
+# The manual view is rotated 90 degrees to match the DXF front view.
+# Pin 1 is at the bottom left in the front view.
+CN -CN3 TB8_2X4 @ -2,-6.818 ROT 90 ORDER ODD START K7 SHAPE SQUARE PIN1 DOUBLE
+  PITCH 3.5
+  ROW_PITCH 2.5
+  MARGIN 2.05,4.15
+  LABEL IN_COM,TP1,OUT_COM,IN1,OUT1,IN2,OUT_BR,IN3
+  LABEL_POS OUTSIDE
+  NAME "CN3 I/O" K7
+CN -CN2 TB4_2X2 @ -1.7,-38.889 ORDER COLUMN START K9 SHAPE SQUARE
+  ROW_PITCH 4.2
+  MARGIN 2.7,2.4
+  LABEL B-,A-,B+,A+
+  LABEL_POS OUTSIDE
+  NAME "CN2 MOTOR" K8
+CN -CN1 TB2 @ -1.7,-47.246 START K9 SHAPE SQUARE
+  PITCH 4.2
+  MARGIN 2.7,2.4
+  LABEL GND,V+
+  LABEL_POS OUTSIDE
+  NAME "CN1 DC" K2
+MODEL "EXD2060EC" @ -2,-56 SIZE 17,2.5
+MOUNT SLOT @ -5,63 W 5 OPEN TOP
+MOUNT SLOT @ -5,-63 W 5 OPEN BOTTOM
+VIEW LEFT
+MOUNT HOLE @ -0.5,63 D 2.5
+MOUNT HOLE @ -0.5,-63 D 2.5`,
+stepper:`PART STEPPER_DRV BODY 118 75 34
+CN TB6 @K8
+CN TB6 @K2`,
+terminal:`# 獨立端子測試：無 CN 外框，X/Y 座標以 BODY 中心為原點
+# 此範例為語法功能展示，不代表指定廠牌或尺寸
+PART INDEPENDENT_TERMINALS_DEMO
+BODY 90 130 55
+VIEW FRONT
+BRAND "SERVO DRIVER" AT 0,51 SIZE 52,5
+# 一次畫兩顆：AT 為第一顆中心，ROT 90 表示往上排列
+TERMINAL U,V AT -29,-34 PITCH 19 ROT 90
+  SIZE 7
+  SHAPE ROUND
+  LABEL_POS K6
+  PIN1 NONE
+# 單顆獨立端子可指定方形、功能、標籤方向
+TERMINAL PE AT 27,-34
+  SIZE 6
+  SHAPE SQUARE
+  LABEL_POS K4
+  FUNCTION "Protective Earth"
+# 只畫外形，不顯示文字
+TERMINAL AUX AT 27,-14
+  SIZE 5
+  LABEL NONE
+# 可在旁邊輸出獨立端子的 Pin Table（T1、T2... 為內部 ID）
+TABLE ALL AT 56,38
+  TITLE "Independent Terminals"
+`,
+plc:`# Mitsubishi FX5UJ-40MT/ES — measured from user-supplied DXF
+# Source: refs/fx5uj-40m_a.dxf; drawing units mm; front outline 130 × 90
+# The manufacturer words below are simplified generic-font text (no logo artwork).
+# Connector socket envelope/brand text proportions are schematic approximations.
+PART FX5UJ-40MT/ES
+BODY 130 90 83
+VIEW FRONT
+BRAND "MITSUBISHI" AT -17,19 SIZE 16,2.5
+TEXT "ELECTRIC" AT -18,16 SIZE 14,2.5
+MODEL "FX5UJ-40M" AT 40,-11.5 SIZE 16.6,2
+# CAD measured: terminal pitch 7.62, row pitch 7.80, lower row shifted left 3.81.
+# Outer TOP row centers y=+40.5, inner TOP row y=+32.7.
+CN -CN1 TB28 AT 4.65,37.2 SHAPE ROUND
+  PITCH 7.62
+  ROW_PITCH 7.8
+  STAGGER -0.5
+  MARGIN 3.2,4
+  LABEL_POS K2 / K8
+  START K1
+  LABEL L,PE,N,S/S,X0..X7,X10..X17,X20..X27
+# Outer BOTTOM row centers y=-40.5, inner BOTTOM row y=-32.7.
+# Output terminal order checked against the supplied front-view reference.
+CN -CN2 TB26 AT 0.75,-37.25 SHAPE ROUND
+  PITCH 7.62
+  ROW_PITCH 7.8
+  STAGGER -0.5
+  MARGIN 3.2,4
+  LABEL_POS K2 / K8
+  START K7
+  LABEL_ROWS 0V,Y0,Y2,•,Y4,Y6,•,Y10,Y12,•,Y14,Y16,• / 24V,COM0,Y1,Y3,COM1,Y5,Y7,COM2,Y11,Y13,COM3,Y15,Y17
+# The supplied DXF shows USB above Ethernet on the LEFT of the FRONT view.
+# Centers below are approximate due to schematic port geometry.
+CN -CN3 USB_MINIB AT -43.5,-3.2 FUNCTION PROGRAMMING
+CN -CN4 RJ45 AT -45.725,-16.45 ROT 270 FUNCTION ETHERNET
+# Front status LED coordinates from the DXF; I/O indicators are omitted.
+IND LED PWR,ERR,P.RUN,CARD @42.5,5.5 PITCH 2.75 ROT -90 D 1.3
+IND LED SD/RD @42.5,-6.5 D 1.3
+# Direct-mounting holes from the Mitsubishi FX5UJ installation diagram.
+MOUNT HOLE @ -50,41 D 4.5
+MOUNT HOLE @ 61,-41 D 4.5
+# Right-side expansion interface: visually estimated size, centred vertically.
+LINK RIGHT @K6 SIZE 12,27
+VIEW BACK
+MOUNT DIN AT 0,0 W 80 H 35
+# Horizontal DIN groove span is schematic.
+`,
+servo:`# Delta ASDA-A2 400W · 功能性工程簡圖
+# BODY 暫採 45×173×170；各接口位置僅供預覽
+# 台達 ASDA-A2 手冊第 1、3 章。CN1 為 50 腳，CN2 為 20 腳。
+# 正面接頭僅示意外形及腳數，位置未量測。CN3（RS-485）及 CN4（USB Type B）未繪。
+PART ASD-A2-0421-L
+BODY 45 173 170
+VIEW FRONT
+BRAND "DELTA" AT 0,69 SIZE 30,5.8
+MODEL "ASDA-A2 400W" AT 0,58 SIZE 36,4.2
+CN -CN1 MDR50 AT 7,17 ROT 90 PIN1 NONE FUNCTION IO
+  LABEL NONE
+CN -CN2 MDR20 AT 7,-25 ROT 90 PIN1 NONE FUNCTION ENCODER
+  LABEL NONE
+MOUNT HOLE AT 0,81.5 D 5.2
+MOUNT HOLE AT 0,-81.5 D 5.2
+VIEW RIGHT
+CN -POWER TB3 AT -35,43 ROT 90 SHAPE SQUARE FUNCTION POWER
+  PITCH 7.5
+  PINS 1=R 2=S 3=T
+CN -MOTOR TB3 AT -35,0 ROT 90 SHAPE SQUARE FUNCTION MOTOR
+  PITCH 7.5
+  PINS 1=U 2=V 3=W
+CN -BRAKE TB4 AT -35,-44 ROT 90 SHAPE SQUARE FUNCTION BRAKE
+  PITCH 7.5
+  PINS 1=P 2=D 3=C 4=FG
+# 右視圖接口位置為概念配置
+`,
+original:EXAMPLE
+};
+SAMPLES.a1=SAMPLES.plc.trimEnd()+'\n\n'+SAMPLES.fx58ex.trimEnd()+'\n\n'+SAMPLES.a1;
+
+const el=id=>document.getElementById(id);const editor=el('editor'),preview=el('preview'),status=el('status'),viewSelect=el('viewSelect');const views=['FRONT','BACK','LEFT','RIGHT','TOP','BOTTOM'];
+const mdr50SolderSpec=[1,50,2.54,'MDR50_SOLDER'];
+// Front view of refs/refs_D-SUB-9F_D-SUB母頭.dxf, in millimetres.
+const dsubReference={pitch:2.77,rowPitch:2.84,shroudWidth:16.3,shroudHeight:7.9,cornerRadius:2.54,contactRadius:1.06045};
+const spec={DE9:[2,5,2.77,'DSUB',[5,4]],DB9:[2,5,2.77,'DSUB',[5,4]],DB25:[2,13,2.77,'DSUB',[13,12]],DSUB25:[2,13,2.77,'DSUB',[13,12]],MDR20:[2,10,1.27,'MDR'],MDR50:[2,25,1.27,'MDR'],MDR26:[2,13,1.27,'MDR'],SCSI26:[2,13,1.27,'MDR'], 'G57-24':[2,12,2.54,'GENERIC'], G50:[2,25,2.54,'GENERIC'], MDR50M_SOLDER:mdr50SolderSpec,SCSI50:mdr50SolderSpec,ASDA_A2_CN1:mdr50SolderSpec,TB26:[2,13,4.38,'TERM'],TB28:[2,14,4.18,'TERM'], TB2:[1,2,7.5,'TERM'],TB4_2X2:[2,2,4.2,'TERM'],TB6_2X3:[2,3,7.62,'TERM'],TB8_2X4:[2,4,3.5,'TERM'],TB3:[1,3,7.5,'TERM'],TB4:[1,4,7.5,'TERM'],TB6:[1,6,7.5,'TERM'],TB8:[1,8,7.5,'TERM'], RJ45:[1,8,1.02,'RJ45'], USB_MINIB:[1,5,.8,'USB'], USB_MICROB:[1,5,.65,'USB']};
+const maxIdcPins=1000;
+function connectorSpec(type){
+ if(Object.hasOwn(spec,type))return spec[type];
+ const pins=Number(type.match(/^IDC(\d+)$/)?.[1]);
+ if(pins>=2&&pins<=maxIdcPins&&pins%2===0)return [2,pins/2,2.54,'IDC'];
+}
+const catalogTypes=['IDC10','IDC20','IDC26','IDC32','IDC40',...Object.keys(spec)];
+const catalogConnectors=catalogTypes.flatMap(type=>
+ ['RJ45','DB25'].includes(type)?[type+' STYLE S',type+' STYLE P']:[type]);
+const catalogColumns=5,catalogCellWidth=76,catalogCellHeight=58;
+const catalogRows=Math.ceil(catalogConnectors.length/catalogColumns);
+SAMPLES.cnCatalog=['# IDC 後接偶數總腳數，例如 IDC32 為 2 × 16。此處展示部分 IDC 尺寸。',
+ 'PART CN-CATALOG BODY '+catalogColumns*catalogCellWidth+','+catalogRows*catalogCellHeight+',20 HIDE',
+ ...catalogConnectors.flatMap((declaration,index)=>{
+  const [rows,,,family]=connectorSpec(declaration.split(' ')[0]);
+  const x=(index%catalogColumns-(catalogColumns-1)/2)*catalogCellWidth;
+  const y=((catalogRows-1)/2-Math.floor(index/catalogColumns))*catalogCellHeight;
+  const lines=['CN '+declaration+' @ '+x+','+y,'  NAME "'+declaration+'" K8'];
+  if(family!=='MDR50_SOLDER')lines.push(rows===2?'  LABEL_POS K8 / K2':'  LABEL_POS K2');
+  return lines;
+ })
+].join('\n');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const numberValue = '([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?)';
+const numberSeparator = '(?:\\s*,\\s*|\\s+)';
+const numberPair = numberValue+numberSeparator+numberValue;
+const bodyPattern = new RegExp('^'+numberPair+'(?:'+numberSeparator+numberValue+')?$');
+const positionPattern = new RegExp('^'+numberPair+'(?=\\s|$)');
+const sizePattern = new RegExp('^SIZE\\s+'+numberPair+'$','i');
+const marginPattern = new RegExp('^'+numberValue+'(?:'+numberSeparator+numberValue+')?$');
+
+function readNumbers(text,pattern){
+ const match=text.match(pattern);
+ if(!match)return null;
+ const values=match.slice(1).filter(value=>value!==undefined).map(Number);
+ if(!values.every(Number.isFinite))return null;
+ return {values,raw:match[0],first:match[1],rest:text.slice(match[0].length).trim()};
+}
+const optionTokens = /"[^"]*"|'[^']*'|\S+/g;
+const enumOptions = {
+ ORDER: ['order', ['ODD','ROW','COLUMN','REVERSE']],
+ START: ['start', ['K1','K3','K7','K9']],
+ STYLE: ['subtype', ['PLUG','SOCKET']],
+ SHAPE: ['shape', ['ROUND','SQUARE']],
+ PIN1: ['pin1', ['DOUBLE','SOLID','NONE']],
+ PINEND: ['pinEnd', ['AUTO','ARC','NONE']]
+};
+const connectorStyleKeys = ['STYLE','SUBTYPE'];
+const connectorOptions = ['ROT','ORDER','START',...connectorStyleKeys,'SHAPE','PIN1','PINEND','FUNCTION'];
+const terminalOptions = ['ROT','PITCH','SIZE','SHAPE','PIN1','PINEND','FUNCTION'];
+const indicatorOptions = ['D','COLOR','LABEL_POS','PITCH','ROT'];
+const labelAliases = {
+ K1:'BOTTOM_LEFT',K2:'BELOW',K3:'BOTTOM_RIGHT',K4:'LEFT',K5:'CENTER',
+ K6:'RIGHT',K7:'TOP_LEFT',K8:'ABOVE',K9:'TOP_RIGHT'
+};
+const labelVectors = {
+ TOP_LEFT:[-1,-1],ABOVE:[0,-1],TOP_RIGHT:[1,-1],
+ LEFT:[-1,0],CENTER:[0,0],RIGHT:[1,0],
+ BOTTOM_LEFT:[-1,1],BELOW:[0,1],BOTTOM_RIGHT:[1,1]
+};
+const ledColors = {
+ GN:'green',GREEN:'green',RD:'red',RED:'red',YE:'yellow',YELLOW:'yellow',
+ BU:'blue',BLUE:'blue',WH:'white',WHITE:'white'
+};
+const linkOptions = ['SIZE','PITCH','ROT','ANCHOR','NAME'];
+const linkTypes = ['RIGHT','LEFT','FRONT','BACK'];
+const singleNumberPattern = new RegExp('^'+numberValue+'(?=\\s|$)');
+
+function expandRange(token,limit=100){
+ const match=token.match(/^([A-Za-z_]*)(\d+)\.\.([A-Za-z_]*)(\d+)(?:(?::|\s+BY\s+)(\d+))?$/i);
+ if(!match)return null;
+ const from=+match[2],to=+match[4],step=+(match[5]||1);
+ if(![from,to,step].every(Number.isSafeInteger)||step===0||Math.abs(to-from)>1000)return null;
+ const count=Math.min(limit,Math.floor(Math.abs(to-from)/step)+1);
+ const prefix=match[3]||match[1],delta=from<=to?step:-step;
+ return Array.from({length:count},(_,i)=>prefix+(from+i*delta));
+}
+
+function expandRangeList(text,report,limit=100,requireNumbers=false){
+ const values=[];
+ for(const segment of text.split(',')){
+  const tokens=segment.trim().split(/\s+/);
+  for(let i=0;i<tokens.length;i++){
+   const token=tokens[i];
+   if(!token&&!requireNumbers)continue;
+   const stepped=/^[A-Za-z_]*\d+\.\.[A-Za-z_]*\d+$/.test(token)&&/^BY$/i.test(tokens[i+1]??'');
+   const range=expandRange(stepped?token+' BY '+(tokens[i+2]??''):token,limit);
+   if(stepped&&!range){report('範圍 '+token+' 的 BY 需要有效的正整數步長');return null}
+   const items=range??[token];
+   if(requireNumbers&&!items.every(pin=>/^\d+$/.test(pin)&&Number.isSafeInteger(+pin)&&+pin>0)){
+    report('TABLE SPLIT 需要正整數 Pin 或範圍，例如 1..25 BY 2 / 2..24 BY 2');
+    return null;
+   }
+   values.push(...items);
+   if(stepped)i+=2;
+  }
+ }
+ return values;
+}
+
+function readLinkOptions(link,text,report,formatGroup){
+ while(text){
+  const key=text.match(/^\S+/)[0].toUpperCase();
+  const value=text.slice(key.length).trimStart();
+  if(!linkOptions.includes(key)){report('未知 LINK 選項 '+key);return}
+  if(key==='NAME'){
+   const name=value.match(/^(?:"([^"]*)"|'([^']*)'|(NONE))(?=\s|$)/i);
+   if(!name){report('LINK NAME 應為 NAME "文字" 或 NAME NONE');return}
+   link.displayName=name[3]?'':(name[1]??name[2]);
+   text=value.slice(name[0].length).trimStart();
+   continue;
+  }
+  const pair=key==='SIZE'||key==='ANCHOR';
+  const numbers=readNumbers(value,pair?positionPattern:singleNumberPattern);
+  if(!numbers||/^[,+.\d-]/.test(numbers.rest)){
+   report('LINK '+key+' 需要 '+(pair?'兩個':'一個')+'數值');return;
+  }
+  if((key==='SIZE'||key==='PITCH')&&numbers.values.some(n=>n<=0)){
+   report('LINK '+key+' 必須大於 0');return;
+  }
+  if(pair)formatGroup(value,numbers);
+  link[key.toLowerCase()]=pair?numbers.values:numbers.values[0];
+  text=numbers.rest;
+ }
+}
+
+function setOption(contact,key,value,report){
+ if(key==='SUBTYPE')key='STYLE';
+ if(Object.hasOwn(enumOptions,key)){
+  const [field,allowed]=enumOptions[key],upper=value.toUpperCase();
+  const choice=key==='STYLE'?({P:'PLUG',S:'SOCKET'}[upper]??upper):upper;
+  if((key==='START'||key==='STYLE')&&contact.isTerminal)report(key+' 僅用於 CN');
+  else if(!allowed.includes(choice))report(key+' 僅支援 '+allowed.join('、')+(key==='STYLE'?'（可簡寫 P 或 S）':''));
+  else if(key==='STYLE'&&contact.family==='MDR50_SOLDER'&&choice!=='PLUG')
+   report(contact.type+' 是公頭焊接面模板，請用 STYLE P 或 STYLE PLUG');
+  else contact[field]=choice;
+ }else if(key==='FUNCTION'){
+  if(!/^(?:"[^"]*"|'[^']*'|[^"'][\s\S]*)$/.test(value))report('FUNCTION 需要文字或完整的引號文字');
+  else contact.func=value.replace(/^(["'])([\s\S]*)\1$/,'$2');
+ }else{
+  const number=Number(value);
+  if(!value||!Number.isFinite(number))report(key+' 需要有效數字');
+  else if(key!=='ROT'&&number<=0)report(key+' 必須大於 0');
+  else contact[key.toLowerCase()]=number;
+ }
+}
+
+function readOptions(contact,tail,allowed,report,applyOption=setOption){
+ const tokens=tail.match(optionTokens)||[];
+ for(let i=0;i<tokens.length;i++){
+  const key=tokens[i].toUpperCase();
+  if(!allowed.includes(key)){report('未知宣告選項 '+tokens[i]);continue}
+  const value=tokens[i+1];
+  if(value===undefined||(key!=='FUNCTION'&&allowed.includes(value.toUpperCase()))){report(key+' 缺少值');continue}
+  applyOption(contact,key,value,report);
+  i++;
+ }
+}
+
+function readIndicatorNames(text){
+ const names=[];
+ while(text){
+  const name=text.match(/^(?:"([^"]+)"|'([^']+)'|([^\s,@"']+))/);
+  if(!name)return null;
+  names.push(name[1]??name[2]??name[3]);
+  const rest=text.slice(name[0].length).trimStart();
+  if(!rest.startsWith(','))return {names,rest};
+  text=rest.slice(1).trimStart();
+ }
+ return null;
+}
+
+function setIndicatorOption(indicator,key,value,report){
+ const upper=value.toUpperCase();
+ if(key==='LABEL_POS'){
+  const direction=labelAliases[upper]??upper;
+  if(direction==='AUTO')indicator.labelPos='RIGHT';
+  else if(Object.hasOwn(labelVectors,direction))indicator.labelPos=direction;
+  else report('IND LED 的 LABEL_POS 需要 K1～K9 或英文方向');
+ }else if(key==='COLOR'){
+  if(!Object.hasOwn(ledColors,upper))report('IND LED 的 COLOR 需要 GN、RD、YE、BU、WH 或英文全名');
+  else indicator.color=ledColors[upper];
+ }else setOption(indicator,key,value,report);
+}
+
+function placeIndicators(indicator,dimensions,errors){
+ const {names,d,pitch,rot,keypad,labelPos,color}=indicator;
+ const r=d/2;
+ const [x,y]=keypad?keypadPosition(keypad,dimensions,[-r,-r,r,r]):[indicator.x,indicator.y];
+ const angle=(rot%360)*Math.PI/180;
+ const dx=pitch*Math.cos(angle),dy=pitch*Math.sin(angle);
+ const leds=names.map((value,index)=>({kind:'LED',value,x:x+index*dx,y:y+index*dy,d,color,labelPos}));
+ if(leds.some(led=>!Number.isFinite(led.x)||!Number.isFinite(led.y))){
+  errors.push('第 '+indicator.line+' 行：IND LED 位置超出數值範圍');
+  return [];
+ }
+ return leds;
+}
+
+function sourceLine(raw){
+ const line=raw.replace(/"[^"]*(?:"|$)|'[^']*(?:'|$)|#.*/g,match=>match.startsWith('#')?'':match).trim();
+ return line.startsWith('//')?'':line;
+}
+
+function readTable(value,line,report,formatGroup){
+ const declaration=value.match(/^TABLE\s+(\S+)\s+(.+)$/i);
+ const syntax='TABLE 需要目標及 K1～K9 或 AT x,y，最後可加 SPLIT';
+ if(!declaration){report(line,syntax);return null}
+ const [,target,placement]=declaration;
+ const marker=placement.match(/^(?:AT(?=\s|$)|@)\s*/i);
+ const position=placement.slice(marker?.[0].length??0);
+ const anchor=position.match(/^K([1-9])(?=\s|$)/i);
+ const coordinates=marker&&!anchor?readNumbers(position,positionPattern):null;
+ if(!anchor&&!coordinates){report(line,syntax);return null}
+ const rest=anchor?position.slice(anchor[0].length).trim():coordinates.rest;
+ const split=rest.match(/^SPLIT(?:\s+(.+))?$/i);
+ if(rest&&!split){report(line,syntax);return null}
+ const pinGroups=split?.[1]?readTablePinGroups(split[1],line,report):null;
+ if(split?.[1]&&!pinGroups)return null;
+ if(coordinates)formatGroup?.(position,coordinates);
+ const [x,y]=coordinates?.values??[0,0];
+ const positionStart=value.length-placement.length;
+ const positionEnd=positionStart+(marker?.[0].length??0)+(anchor?.[0].length??coordinates.raw.length);
+ return {target:target.toUpperCase(),x,y,anchor:anchor?.[0].toUpperCase(),positionStart,positionEnd,
+  split:Boolean(split),pinGroups,line,title:'',assignments:new Map(),csvStarted:false};
+}
+
+function readTablePinGroups(value,line,report){
+ const groups=[],used=new Set();
+ for(const text of value.split('/')){
+  const pins=new Set();
+  const values=expandRangeList(text,message=>report(line,message),1001,true);
+  if(!values)return null;
+  for(const value of values){
+   const pin=Number(value);
+   if(used.has(pin)){report(line,'TABLE SPLIT 重複指定 Pin '+pin);return null}
+   used.add(pin);
+   pins.add(pin);
+  }
+  groups.push(pins);
+ }
+ return groups;
+}
+
+// A CSV row starts with a key and comma, so it can be pasted without indentation.
+const tableCsvStart=/^(?:[^\s,"]+|"(?:""|[^"])*")\s*,/;
+const tableCsvField='(?:"((?:""|[^"])*)"|([^",]*))';
+const tableCsvRow=new RegExp('^'+tableCsvField+'\\s*,\\s*'+tableCsvField+'\\s*$');
+
+function readTableRow(table,raw,line,report){
+ const match=raw.trim().match(tableCsvRow);
+ if(!match){report(line,'TABLE 的 CSV 每列需要兩欄：位址或 Pin、用途');return}
+ const key=(match[1]??match[2]).replace(/""/g,'"').trim().toUpperCase();
+ const description=match[3]?.replace(/""/g,'"')??match[4].trim();
+ if(!key){report(line,'TABLE 的 CSV 缺少位址或 Pin');return}
+ const header=!table.csvStarted&&/^(ADDR|ADDRESS|PIN|位址)$/i.test(key)
+  &&/^(FUNCTION|COMMENT|DESCRIPTION|用途)$/i.test(description);
+ table.csvStarted=true;
+ if(header)return;
+ if(table.assignments.has(key)){report(line,'TABLE 的 CSV 重複指定 '+key);return}
+ table.assignments.set(key,{description,line});
+}
+
+function unionBounds(a,b){
+ return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[2],b[2]),Math.max(a[3],b[3])];
+}
+
+function centeredBounds(x,y,w,h){
+ return [x-w/2,y-h/2,x+w/2,y+h/2];
+}
+
+function textBounds(x,y,value,size,anchor='middle'){
+ // Budget one em per character to allow for wide glyphs and fallback fonts.
+ const width=Array.from(String(value)).length*size;
+ const left=x-(anchor==='end'?width:anchor==='middle'?width/2:0);
+ return [left,y-size,left+width,y+size*.25];
+}
+
+
+const setIdPattern='-[A-Za-z][^\\s#"\'@:]*';
+const setHeaderPattern=new RegExp('^SET\\s+('+setIdPattern+')(?:\\s+ON\\s+(.+))?$','i');
+const setMemberPattern=new RegExp('^(?:('+setIdPattern+')\\s+)?([^@]+?)(?:\\s*@\\s*([^\\s@]+))?$','i');
+
+function emptyView(){
+ return {connectors:[],terminals:[],mounts:[],tables:[],annotations:[],links:[]};
+}
+
+function partHeader(line,tokens=[...line.matchAll(optionTokens)]){
+ const bodyIndex=tokens.findIndex((token,index)=>index>1&&token[0].toUpperCase()==='BODY');
+ const name=tokens.slice(1,bodyIndex<0?tokens.length:bodyIndex).map(token=>token[0]).join(' ');
+ const bodyText=bodyIndex<0?null:line.slice(tokens[bodyIndex].index+4).trim();
+ return {name,bodyText};
+}
+
+function catalogParts(){
+ const parts=new Map();
+ for(const source of Object.values(SAMPLES)){
+  const statements=source.split(/\r?\n/).map(sourceLine).filter(Boolean);
+  if(statements.some(line=>/^SET(?:\s|$)/i.test(line)))continue;
+  const header=statements[0];
+  if(!header||!/^PART\s/i.test(header))continue;
+  const {name}=partHeader(header);
+  if(name)parts.set(name.toUpperCase(),source);
+ }
+ return parts;
+}
+
+function assemblyPlaceholder(name){
+ return {name,body:[40,90,0],views:{FRONT:emptyView()},placeholder:true};
+}
+
+function pickAssemblyLink(part,type,selector,used,warn){
+ const available=part.views.FRONT.links.filter(link=>link.type===type&&!used?.has(link));
+ if(selector){
+  const chosen=available.find(link=>link.id.replace(/^-/,'').toUpperCase()===selector.toUpperCase());
+  if(chosen)return chosen;
+  warn('@'+selector+' 找不到可用的 '+type+' 介面，採用預設定位');
+ }
+ return available[0];
+}
+
+function sidePlacement(previous,part,selector,warn){
+ if(!previous){
+  if(selector)warn('@'+selector+' 前方沒有對接模組，採用原點');
+  return [0,0];
+ }
+ const right=pickAssemblyLink(previous.part,'RIGHT',selector,null,warn);
+ const left=pickAssemblyLink(part,'LEFT',null,null,warn);
+ if(!right&&!previous.part.placeholder)warn(previous.part.name+' 沒有 LINK RIGHT，已用本體右緣定位。若要精確對齊，請加上 LINK RIGHT @K6');
+ if(!left&&!part.placeholder)warn(part.name+' 沒有 LINK LEFT，已用本體左緣定位。若要精確對齊，請加上 LINK LEFT @K4');
+ const din=object=>(object.views.BACK?.mounts.find(m=>m.kind==='DIN')
+  ??object.views.FRONT.mounts.find(m=>m.kind==='DIN'));
+ const leftDin=din(previous.part),rightDin=din(part);
+ const alignDin=!right&&!left&&leftDin&&rightDin;
+ const [rx,ry]=right?.anchor??[previous.part.body[0]/2,alignDin?leftDin.y:0];
+ const [lx,ly]=left?.anchor??[-part.body[0]/2,alignDin?rightDin.y:0];
+ return [previous.x+rx-lx,previous.y+ry-ly];
+}
+
+function frontPlacement(host,part,slot){
+ const back=part.views.FRONT.links.find(link=>link.type==='BACK');
+ const [fx,fy]=slot?.anchor??[0,0];
+ const [bx,by]=back?.anchor??[0,0];
+ return [host.x+fx-bx,host.y+fy-by];
+}
+
+function setAddresses(member,payload,error,warn){
+ const entries=Object.entries(member.part.views);
+ let connectors=entries.flatMap(([,view])=>view.connectors).sort((a,b)=>a.line-b.line);
+ const first=payload.match(/^[^\s,]+/)?.[0];
+ const id=first?.toUpperCase().replace(/^-?/,'-');
+ const matches=id?entries.flatMap(([view,contents])=>contents.connectors
+  .filter(c=>c.id.toUpperCase()===id).map(connector=>({view,connector}))):[];
+ if(matches.length>1){
+  error('ADDR 接頭 '+first+' 有多個候選：'+matches.map(({view,connector})=>view+'（PART 第 '+connector.line+' 行）').join('、'));
+  return;
+ }
+ if(matches.length){
+  connectors=[matches[0].connector];
+  payload=payload.slice(first.length).trim();
+ }else if(first&&(/^-[A-Za-z]/.test(first)||/^CN\d+$/i.test(first))){
+  error('ADDR 找不到接頭 '+first);
+  return;
+ }
+ const values=expandRangeList(payload,error);
+ if(!values)return;
+ if(!values.length){error('ADDR 需要位址清單');return}
+ const pins=connectors.flatMap(connector=>pinList(connector).sort((a,b)=>a.pin-b.pin)
+  .map(({pin})=>({connector,pin})));
+ if(values.length!==pins.length)warn('ADDR 有 '+values.length+' 個位址，對應 '+pins.length+' 個端子');
+ pins.forEach(({connector,pin},index)=>{
+  const map=member.addresses.get(connector)??new Map();
+  member.addresses.set(connector,map);
+  if(index<values.length)map.set(pin,values[index]);
+  else map.delete(pin);
+ });
+}
+
+function parseSet(statements,resolvePart,claim,report,warnAt){
+ const [header,...rows]=statements;
+ const layout={name:'UNTITLED',segments:[[]]};
+ const declaration=header.value.match(setHeaderPattern);
+ if(!declaration){report(header.line,'SET 格式為 SET -ID [ON 底板型號]');return layout}
+ const [,name,baseType]=declaration;
+ layout.name=name;
+ if(!claim(name,header.line))return layout;
+
+ let segment=layout.segments[0],base=null,previous=null,lastMember=null,overflow=null,breakLine=0;
+ let ordinal=0;
+ if(baseType){
+  const part=resolvePart(baseType,header.line);
+  base={part,x:0,y:0,usedFront:new Set(),addresses:new Map()};
+  segment.push(base);
+ }
+ if(/^NAME(?:\s|$)/i.test(rows[0]?.value||'')){
+  const title=rows.shift(),match=title.value.match(/^NAME\s+(?:"([^"]*)"|'([^']*)')$/i);
+  if(!match)report(title.line,'SET NAME 需要引號文字');
+  else layout.displayName=match[1]??match[2];
+ }
+ if(!rows.length&&!base)report(header.line,'SET 至少需要一個零件型號');
+ for(const {value,line} of rows){
+  const error=message=>report(line,message),warn=message=>warnAt(line,message);
+  if(/^ADDR(?:\s|$)/i.test(value)){
+   if(!lastMember)error('ADDR 前需要一個模組');
+   else setAddresses(lastMember,value.slice(4).trim(),error,warn);
+   continue;
+  }
+  if(/^EMPTY$/i.test(value)){
+   if(!base)warn('EMPTY 僅用於底板型 SET，已忽略');
+   else{
+    const slot=pickAssemblyLink(base.part,'FRONT',null,base.usedFront,warn);
+    if(slot)base.usedFront.add(slot);
+    else warn('底板沒有可用插槽供 EMPTY 占用');
+   }
+   continue;
+  }
+  if(/^BREAK$/i.test(value)){
+   if(base)error('BREAK 僅用於串接型 SET');
+   else if(!previous)warn('段首或連續的 BREAK 已忽略');
+   else{breakLine=line;previous=null;lastMember=null}
+   continue;
+  }
+  if(/^NAME(?:\s|$)/i.test(value)){error('SET NAME 須緊接在 SET 宣告後');continue}
+  const stacked=value.startsWith('+');
+  const text=stacked?value.slice(1).trim():value;
+  const reference=text.match(setMemberPattern);
+  if(!reference||!reference[2].trim()||(text.startsWith('-')&&!reference[1])){
+   error('SET 成員格式為 [-ID] 型號 [@介面]');continue;
+  }
+  const [,explicitId,modelName,selector]=reference;
+  if(stacked&&!previous){error('+ 前需要同一段的普通模組');continue}
+  ordinal++;
+  const id=explicitId??name+'.'+ordinal;
+  if(!claim(id,line))continue;
+  const part=resolvePart(modelName.trim(),line);
+  let location,overlaid=stacked;
+  if(stacked){
+   const slot=pickAssemblyLink(previous.part,'FRONT',selector,previous.usedFront,warn);
+   if(slot)previous.usedFront.add(slot);
+   else if(previous.usedFront.size)warn(previous.id+' 的 FRONT 介面已用完，採用中心定位');
+   location=frontPlacement(previous,part,slot);
+  }else if(base){
+   const slot=pickAssemblyLink(base.part,'FRONT',selector,base.usedFront,warn);
+   if(slot){
+    base.usedFront.add(slot);
+    overlaid=true;
+    location=frontPlacement(base,part,slot);
+   }else{
+    warn('底板插槽已用完，'+id+' 接在底板右側');
+    location=sidePlacement(overflow??base,part,null,warn);
+    overflow={part,x:location[0],y:location[1]};
+   }
+  }else{
+   if(breakLine){segment=[];layout.segments.push(segment);breakLine=0}
+   location=sidePlacement(previous,part,selector,warn);
+  }
+  const [x,y]=location;
+  const member={id,part,x,y,usedFront:new Set(),addresses:new Map(),overlaid};
+  segment.push(member);
+  if(!stacked)previous=member;
+  lastMember=member;
+ }
+ if(breakLine)warnAt(breakLine,'段尾的 BREAK 已忽略');
+ return layout;
+}
+
+
+function assemblyView(layout,members,number){
+ const front=emptyView();
+ const suffix=layout.segments.length>1?' · '+number:'';
+ const title=layout.name+suffix+(layout.displayName?' '+layout.displayName:'');
+ let envelope=null,depth=0;
+ for(const {part,x,y} of members){
+  const view=part.views.FRONT;
+  front.connectors.push(...view.connectors);
+  front.terminals.push(...view.terminals);
+  const [w,h,d]=part.body,box=[x-w/2,y-h/2,x+w/2,y+h/2];
+  envelope=envelope?unionBounds(envelope,box):box;
+  depth=Math.max(depth,d);
+ }
+ const body=envelope?[envelope[2]-envelope[0],envelope[3]-envelope[1],depth]:[0,0,0];
+ return {...front,assembly:members,body,title,label:layout.name+suffix};
+}
+
+function parseDocument(source,lines,format){
+ const out={name:'SET',body:[0,0,0],views:{},errors:[],warnings:[]};
+ const report=(line,message)=>out.errors.push('第 '+line+' 行：'+message);
+ const warn=(line,message)=>out.warnings.push('第 '+line+' 行：'+message);
+ const blocks=[];
+ const setTargets=new Set(lines.map(raw=>sourceLine(raw).match(setHeaderPattern)?.[1]?.toUpperCase()).filter(Boolean));
+ let active=null;
+ lines.forEach((raw,index)=>{
+  const value=sourceLine(raw);
+  const tableTarget=value.match(/^TABLE\s+(\S+)/i)?.[1]?.toUpperCase();
+  if(/^PLACE(?:\s|$)/i.test(value)){
+   active={kind:'PLACE',start:index,value};
+   blocks.push(active);
+   return;
+  }
+  if(/^(?:PART|SET)(?:\s|$)/i.test(value)){
+   active={kind:value.split(/\s+/)[0].toUpperCase(),start:index,statements:[]};
+   blocks.push(active);
+  }else if(/^TABLE(?:\s|$)/i.test(value)&&(active?.kind!=='PART'||setTargets.has(tableTarget))){
+   active={kind:'TABLE',start:index,statements:[],table:readTable(value,index+1,report)};
+   blocks.push(active);
+   return;
+  }
+  if(!value)return;
+  if(active?.kind==='TABLE'){
+   if(!active.table)return;
+   if(/^TITLE\s+/i.test(value))active.table.title=value.slice(5).trim().replace(/^['"]|['"]$/g,'');
+   else if(tableCsvStart.test(raw.trim()))readTableRow(active.table,raw,index+1,report);
+   else report(index+1,'TABLE 下方需要 CSV 或 TITLE');
+  }else if(active?.kind==='PLACE')report(index+1,'PLACE 是獨立指令，其後請另開 PART、PLACE 或 SET');
+  else if(active)active.statements.push({value,line:index+1});
+  else report(index+1,'多零件文件需以 PART 或 SET 宣告開頭');
+ });
+
+ const library=catalogParts(),local=new Map(),cache=new Map(),ids=new Set();
+ const chunks=format?source.split(/(\r?\n)/):null;
+ const formattedParts=[];
+ for(const [i,block] of blocks.entries()){
+  if(block.kind!=='PART')continue;
+  const end=blocks[i+1]?.start??lines.length;
+  const raw=chunks?chunks.slice(block.start*2,end*2).join(''):lines.slice(block.start,end).join('\n');
+  const part=parsePart(raw,format),key=part.name.toUpperCase();
+  for(const view of Object.values(part.views)){
+   if(view.insertAfter!==undefined)view.insertAfter+=block.start;
+   for(const object of [...view.tables,...view.connectors,...view.terminals])object.sourceLine=object.line+block.start;
+  }
+  const shift=message=>message.replace(/^第 (\d+) 行/,(_,n)=>'第 '+(+n+block.start)+' 行');
+  out.errors.push(...part.errors.map(shift));
+  out.warnings.push(...part.warnings.map(shift));
+  if(local.has(key))report(block.start+1,'重複定義 PART '+part.name);
+  else if(part.name)local.set(key,part);
+  if(format)formattedParts.push([block.start*2,Math.min(end*2,chunks.length),part.formatted]);
+ }
+ const resolvePart=(name,line)=>{
+  const key=name.toUpperCase(),definition=library.get(key);
+  let part=local.get(key)??cache.get(key);
+  if(!part&&definition){part=parsePart(definition);cache.set(key,part)}
+  if(part&&!part.errors.length)return part;
+  warn(line,(part?'型號定義有誤 ':'找不到型號 ')+name+'，以灰色方框代替');
+  return assemblyPlaceholder(name);
+ };
+ const claim=(id,line)=>{
+  const key=id.toUpperCase();
+  if(ids.has(key)){report(line,'代號重複 '+id);return false}
+  ids.add(key);
+  return true;
+ };
+ const sets=blocks.filter(block=>block.kind==='SET').map(block=>parseSet(block.statements,resolvePart,claim,report,warn));
+ const placements=new Map();
+ for(const block of blocks.filter(block=>block.kind==='PLACE')){
+  const {value,start}=block,line=start+1;
+  if(sets.length){report(line,'PLACE 適用於獨立零件圖，SET 成員依組裝規則定位');continue}
+  const match=value.match(/^PLACE\s+(.+?)\s+((?:@\s*|AT\s+)(.+))$/i);
+  const coordinates=match&&readNumbers(match[3],positionPattern);
+  if(!coordinates||coordinates.rest){report(line,'PLACE 需要零件名稱與座標，例如 PLACE A @0,0');continue}
+  const key=match[1].trim().replace(/\s+/g,' ').toUpperCase();
+  if(!local.has(key)){report(line,'PLACE 找不到 PART '+match[1]);continue}
+  if(placements.has(key)){report(line,'重複指定 PLACE '+match[1]);continue}
+  const [x,y]=coordinates.values;
+  placements.set(key,{x,y,line,positionStart:value.length-match[2].length,positionEnd:value.length});
+  if(chunks){
+   const raw=chunks[start*2],offset=raw.indexOf(value)+value.length-match[3].length;
+   const formatted=match[3].match(/[^\s,]+/g).join(',');
+   chunks[start*2]=raw.slice(0,offset)+formatted+raw.slice(offset+match[3].length);
+  }
+ }
+ if(!sets.length){
+  out.name='PARTS';
+  const missing=[...local].filter(([key])=>!placements.has(key)).map(([,part])=>part.name);
+  if(local.size>1&&missing.length){
+   out.warnings.push('共同圖面尚缺 PLACE 座標：'+missing.join('、')+'。各零件仍以各自的本體中心 (0,0) 獨立預覽及匯出。');
+  }
+  if(!missing.length){
+   for(const [key,part] of local){
+    const placement=placements.get(key);
+    for(const [name,partView] of Object.entries(part.views)){
+     const view=out.views[name]??(out.views[name]={...emptyView(),placements:[],label:'共同圖面 · '+name});
+     view.placements.push({part,...placement});
+     view.connectors.push(...partView.connectors);
+     view.terminals.push(...partView.terminals);
+    }
+   }
+  }
+  for(const [key,part] of local){
+   for(const [name,partView] of Object.entries(part.views)){
+    out.views['PART:'+key+':'+name]={...partView,part,viewName:name,body:part.body,label:part.name+' · '+name};
+   }
+  }
+ }
+ const single=sets.length===1&&sets[0].segments.length===1;
+ const setViews=new Map();
+ for(const [i,set] of sets.entries()){
+  const layoutViews=set.segments.map((members,j)=>assemblyView(set,members,j+1));
+  layoutViews.forEach((view,j)=>{out.views[single?'FRONT':'SET'+(i+1)+'.'+(j+1)]=view});
+  if(!setViews.has(set.name.toUpperCase()))setViews.set(set.name.toUpperCase(),layoutViews);
+ }
+ for(const {table} of blocks){
+  if(!table)continue;
+  const layoutViews=setViews.get(table.target);
+  if(!layoutViews){warn(table.line,'TABLE 找不到 SET '+table.target);continue}
+  prepareSetTable(table,layoutViews,warn);
+ }
+ if(sets.length===1)out.name=sets[0].name;
+ out.body=Object.values(out.views)[0]?.body??out.body;
+ if(format){
+  for(const [start,end,value] of formattedParts.reverse())chunks.splice(start,end-start,value);
+  out.formatted=out.errors.length?source:chunks.join('');
+ }
+ return out;
+}
+
+function parse(source,format=false){
+ const lines=source.split(/\r?\n/);
+ let partCount=0;
+ for(const raw of lines){
+  const line=sourceLine(raw);
+  if(/^(?:SET|PLACE)(?:\s|$)/i.test(line)||(/^PART(?:\s|$)/i.test(line)&&++partCount>1)){
+   return parseDocument(source,lines,format);
+  }
+ }
+ return parsePart(source,format);
+}
+
+function parsePart(source,format=false){
+const lines=source.split(/\r?\n/);
+const out={name:'UNTITLED',body:[100,100,50],views:{},errors:[],warnings:[]};
+const linkDeclarations=[],formattedLines=[];
+let v='FRONT',active=null,activeTable=null,activeLink=null;
+const get=()=>out.views[v]??(out.views[v]=emptyView());
+get();
+lines.forEach((raw,idx)=>{
+ const line=sourceLine(raw);
+ const ln=idx+1;
+ if(!line)return;
+ const tokens=[...line.matchAll(optionTokens)],t=tokens.map(match=>match[0]),op=t[0].toUpperCase();
+ if(op!=='VIEW')get().insertAfter=ln;
+ const report=message=>out.errors.push('第 '+ln+' 行：'+message);
+ if(activeTable&&tableCsvStart.test(raw.trim())){
+  readTableRow(activeTable,raw,ln,(_,message)=>report(message));
+  return;
+ }
+ if(op!=='TITLE')activeTable=null;
+ const tail=count=>tokens.length<count?'':line.slice(tokens[count-1].index+t[count-1].length).trim();
+ const formatGroup=(text,numbers)=>{
+  if(!format||numbers.values.length<2)return;
+  const prefix=numbers.raw.indexOf(numbers.first);
+  const start=raw.indexOf(line)+line.length-text.length+prefix;
+  const end=start+numbers.raw.length-prefix;
+  const replacement=raw.slice(start,end).match(/[^\s,]+/g).join(',');
+  (formattedLines[idx]??=[]).push({start,end,replacement});
+ };
+ const linkReport=message=>{activeLink.invalid=true;report(message)};
+ if(activeLink&&linkOptions.includes(op)){
+  readLinkOptions(activeLink,line,linkReport,formatGroup);
+  return;
+ }
+ activeLink=null;
+ const position=(count,text=tail(count))=>{
+  const marker=text.match(/^(?:AT(?=\s|$)|@)\s*/i);
+  const usesKeypad=op==='CN'||op==='LINK'||op==='IND';
+  const syntax=usesKeypad?'AT x,y 或 AT K1～K9':'AT x,y';
+  if(!marker){report(op+' 缺少 '+syntax+'（AT 可寫成 @）');return null}
+  const value=text.slice(marker[0].length);
+  if(usesKeypad){
+   const keypad=value.match(/^K([1-9])(?=\s|$)/i);
+   if(keypad)return {x:0,y:0,keypad:+keypad[1],rest:value.slice(keypad[0].length).trim(),
+    positionStart:line.length-text.length,positionEnd:line.length-value.length+keypad[0].length};
+  }
+  const coordinates=readNumbers(value,positionPattern);
+  if(!coordinates){
+   report(op+' AT 座標格式應為 '+syntax+'（AT 可寫成 @），且 x、y 必須是有效數字');return null;
+  }
+  formatGroup(value,coordinates);
+  const [x,y]=coordinates.values;
+  return {x,y,rest:coordinates.rest,positionStart:line.length-text.length,
+   positionEnd:line.length-value.length+coordinates.raw.length};
+ };
+ if(op==='IND'){
+  active=null;activeTable=null;
+  const list=readIndicatorNames(tail(2));
+  if(t[1]?.toUpperCase()!=='LED'||!list){report('IND 格式為 IND LED 名稱[,名稱...] @ x,y');return}
+  if(list.names.length>100){report('一行最多 100 顆 LED');return}
+  const at=position(2,list.rest);
+  if(!at)return;
+  const indicator={kind:'LED',names:list.names,x:at.x,y:at.y,keypad:at.keypad,
+   d:2,pitch:10,rot:0,labelPos:'RIGHT',line:ln};
+  const before=out.errors.length;
+  readOptions(indicator,at.rest,indicatorOptions,report,setIndicatorOption);
+  if(out.errors.length===before)get().annotations.push(indicator);
+ }else if(['BRAND','MODEL','TEXT','BOX'].includes(op)){
+  active=null;activeTable=null;
+  const val=(t[1]||'').match(/^(["'])(.+)\1$/)?.[2]||'';
+  if(op!=='BOX'&&!val){report(op+' 需要引號文字');return}
+  const at=position(op==='BOX'?1:2);
+  if(!at)return;
+  const size=readNumbers(at.rest,sizePattern);
+  if(!size||size.values.some(value=>value<0)){report(op+' 需要 SIZE w,h');return}
+  formatGroup(at.rest,size);
+  const [w,h]=size.values;
+  get().annotations.push({kind:op,value:val,x:at.x,y:at.y,w,h});
+ }
+else if(op==='PART'||op==='BODY'){
+ active=null;activeTable=null;
+ const header=op==='PART'?partHeader(line,tokens):null;
+ if(header){
+  out.name=header.name;
+  if(!out.name){report('PART 需要型號');return}
+  if(header.bodyText===null)return;
+ }
+ const bodyText=header?.bodyText??tail(1);
+ const hideBody=/\s+HIDE$/i.test(bodyText);
+ const body=readNumbers(bodyText.replace(/\s+HIDE$/i,''),bodyPattern);
+ if(!body){report('BODY 需要 W H [D] [HIDE]，數值以空格或逗號分隔');return}
+ if(body.values.some(value=>value<=0)){report('BODY 的寬、高、深必須大於 0');return}
+ formatGroup(bodyText,body);
+ const [w,h,d=50]=body.values;
+ out.body=[w,h,d];
+ out.hideBody=hideBody;
+}
+else if(op==='VIEW'){v=(t[1]||'').toUpperCase();if(!views.includes(v)){out.errors.push(`第 ${ln} 行：不支援 VIEW ${v}`);v='FRONT'}get().insertAfter=ln;active=null;activeTable=null}
+else if(op==='LINK'){
+ active=null;activeTable=null;
+ if(v!=='FRONT'){report('LINK 僅支援 VIEW FRONT');return}
+ const id=t[1]?.startsWith('-')?t[1]:'';
+ const stepped=id?.includes('..')&&t[2]?.toUpperCase()==='BY';
+ const prefixCount=stepped?5:id?3:2;
+ const range=id?.includes('..')?expandRange(id.slice(1)+(stepped?' BY '+(t[3]??''):''),101):null;
+ if(id?.includes('..')&&(!range||range.length>100)){report('LINK ID 範圍或 BY 步長無效，或超過 100 個介面');return}
+ const type=(t[prefixCount-1]||'').toUpperCase();
+ if(type==='TOP'||type==='BOTTOM'){report('LINK '+type+' 為保留語法，尚未支援');return}
+ if(!linkTypes.includes(type)){report('LINK TYPE 需要 RIGHT、LEFT、FRONT 或 BACK');return}
+ if(id&&!/^-[A-Za-z][^\s#"']*$/.test(id)){report('LINK ID 的 - 後必須是英文字母');return}
+ const rest=tail(prefixCount);
+ const at=type==='BACK'&&!/^(?:AT(?=\s|$)|@)/i.test(rest)?{x:0,y:0,rest}:position(prefixCount);
+ if(!at)return;
+ const ids=range?range.map(name=>'-'+name):id?[id]:[];
+ activeLink={ids,type,x:at.x,y:at.y,keypad:at.keypad,rot:0,line:ln};
+ linkDeclarations.push(activeLink);
+ readLinkOptions(activeLink,at.rest,linkReport,formatGroup);
+}
+else if(op==='TERMINAL'){
+ active=null;activeTable=null;
+ const rawNames=(t[1]||'').split(',').filter(Boolean);
+ if(!rawNames.length){report('TERMINAL 格式為 TERMINAL U,V AT x,y');return}
+ if(rawNames.length>100){report('最多 100 顆獨立端子');return}
+ const at=position(2);
+ if(!at)return;
+ const own=get().terminals;
+ active={id:'T'+(own.length+1),displayName:'',type:'TERMINAL',isTerminal:true,x:at.x,y:at.y,rot:0,order:'ROW',shape:'ROUND',pin1:'NONE',pinEnd:'AUTO',rows:1,cols:rawNames.length,pitch:10,rowPitch:10,stagger:0,func:'',family:'INDEPENDENT',names:[rawNames],labelMode:'PIN',hideLabels:false,labelPos:null,margin:null,pinOverrides:{},functions:{},size:6,line:ln};
+ readOptions(active,at.rest,terminalOptions,report);
+ active.positionStart=at.positionStart;
+ active.positionEnd=at.positionEnd;
+ own.push(active);
+}
+else if(op==='CN'){
+ active=null;activeTable=null;
+ const id=t[1]?.startsWith('-')?t[1]:'';
+ const type=(t[id?2:1]||'').toUpperCase();
+ const template=connectorSpec(type);
+ if((id&&!/^-[^\s#"']+$/.test(id))||(!id&&!template&&connectorSpec(t[2]?.toUpperCase()??''))){
+  report('CN 的 ID 必須以 - 開頭，例如 CN -CN1 TB6 @ K8');return;
+ }
+ if(!template){
+  report(/^IDC(?:\d+)?$/.test(type)?'IDC 總腳數須為 2～'+maxIdcPins+' 的偶數，例如 IDC32':'未知連接器模板 '+type);
+  return;
+ }
+ let positionIndex=id?3:2,style;
+ const next=t[positionIndex]?.toUpperCase();
+ if(connectorStyleKeys.includes(next)){
+  style=t[positionIndex+1];
+  if(!style||/^(?:AT$|@)/i.test(style)||connectorOptions.includes(style.toUpperCase())){
+   report('STYLE 缺少值');return;
+  }
+  positionIndex+=2;
+ }else if(/^(?:P|S|PLUG|SOCKET)$/.test(next??'')){
+  report('接頭公母需用 STYLE '+next);return;
+ }
+ const rest=tail(positionIndex);
+ const at=!rest||connectorOptions.includes(t[positionIndex]?.toUpperCase())
+  ?{x:0,y:0,rest}:position(positionIndex,rest);
+ if(!at)return;
+ const [rows,cols,pitch,family,rowCounts]=template;
+ active={id,displayName:'',type,x:at.x,y:at.y,rot:0,order:family==='DSUB'?'ROW':'ODD',
+  subtype:family==='MDR50_SOLDER'?'PLUG':'SOCKET',shape:'ROUND',pin1:'DOUBLE',pinEnd:'AUTO',rows,cols,rowCounts,
+  pitch,rowPitch:family==='DSUB'?dsubReference.rowPitch:pitch,stagger:0,func:'',family,names:[],labelMode:'PIN',hideLabels:false,labelPos:null,
+  margin:null,pinOverrides:{},functions:{},line:ln};
+ if(at.keypad)active.keypad=at.keypad;
+ active.positionStart=at.positionStart??line.length-rest.length;
+ active.positionEnd=at.positionEnd??active.positionStart;
+ if(style)setOption(active,'STYLE',style,report);
+ readOptions(active,at.rest,connectorOptions,report);
+ get().connectors.push(active);
+}
+else if(op==='NAME'&&active){
+ const value=line.match(/^NAME\s+(?:(?:"([^"]*)"|'([^']*)')(?:\s+(\S+))?|(NONE))$/i);
+ if(!value){report('NAME 應為 NAME "文字" [方位] 或 NAME NONE');return}
+ const direction=value[3]?.toUpperCase();
+ const namePos=labelAliases[direction]??direction;
+ if(direction&&(active.isTerminal||!Object.hasOwn(labelVectors,namePos))){
+  report('CN 的 NAME 方位需要 K1～K9 或英文方向');return;
+ }
+ active.displayName=value[4]?'':(value[1]??value[2]);
+ active.namePos=namePos;
+}
+else if(op==='LABEL'&&active && /^LABEL\s+NONE\s*$/i.test(line)){active.hideLabels=true;active.names=[]}
+else if((op==='LABEL'||op==='LABEL_ROWS')&&active){
+ const payload=line.slice(t[0].length).trim();
+ if(op==='LABEL'&&/\s+\/\s+/.test(payload)){
+   out.errors.push(`第 ${ln} 行：LABEL 僅接受自然順序；指定逐排請用 LABEL_ROWS`);return;
+ }
+ if(op==='LABEL_ROWS'&&active.rows===1){out.errors.push(`第 ${ln} 行：單排端子不需要 LABEL_ROWS`);return;}
+ const rows=op==='LABEL_ROWS'?payload.split(/\s+\/\s+/):[payload];
+ if(op==='LABEL_ROWS'&&rows.length!==active.rows){out.errors.push(`第 ${ln} 行：LABEL_ROWS 需要 ${active.rows} 排，以空格 / 空格分隔`);return;}
+ const names=rows.map(row=>expandRangeList(row,report));
+ if(names.some(row=>!row))return;
+ active.names=names;
+ active.labelMode=op==='LABEL_ROWS'?'ROWS':'PIN';
+ active.hideLabels=false;
+ active.labelLine=ln;
+}
+else if(op==='LABEL_POS'&&active){
+  let values=line.slice(t[0].length).trim().split(/\s+\/\s+|\s*,\s*|\s+/).filter(Boolean).map(x=>x.toUpperCase());
+  values=values.map(x=>labelAliases[x]??x);
+  const allowed=['AUTO',...Object.keys(labelVectors),'OUTSIDE'];
+  if(!values.length||values.length>active.rows||values.some(x=>!allowed.includes(x)||(x==='OUTSIDE'&&active.isTerminal)))
+    out.errors.push(`第 ${ln} 行：LABEL_POS 支援 AUTO、K1～K9 或英文方向，CN 另支援 OUTSIDE；最多 ${active.rows} 排`);
+  else if(active.family==='MDR50_SOLDER')
+    out.warnings.push('第 '+ln+' 行：此焊接面模板的腳號固定在焊點內，已忽略 LABEL_POS');
+  else active.labelPos=values;
+}
+else if(op==='PINS'&&active){
+ const pairs=[];
+ let rest=tail(1);
+ if(!rest){report('PINS 需要腳號=標籤，例如 PINS 1=L 2=PE');return}
+ while(rest){
+  const pair=rest.match(/^(\d+)\s*=\s*(\S+)(?=\s|$)/);
+  if(!pair||/^\d+=/.test(pair[2])){report('PINS 格式錯誤，預期腳號=標籤：'+rest);return}
+  if(!validPin(active,+pair[1],report))return;
+  pairs.push([+pair[1],pair[2]]);
+  rest=rest.slice(pair[0].length).trimStart();
+ }
+ Object.assign(active.pinOverrides,Object.fromEntries(pairs));
+}
+else if(op==='PIN'&&active){
+ const match=tail(1).match(/^(\d+)\s+(\S+)(?:\s+(?:"([^"]*)"|'([^']*)'))?$/);
+ if(!match){report('PIN 格式為 PIN 腳號 標籤 [引號內的說明]');return}
+ const [,number,label,doubleQuoted,singleQuoted]=match,pin=Number(number);
+ if(!validPin(active,pin,report))return;
+ active.pinOverrides[pin]=label;
+ const description=doubleQuoted??singleQuoted;
+ if(description!==undefined)active.functions[pin]=description;
+}
+else if(active&&(op==='PITCH'||(op==='SIZE'&&active.isTerminal))){setOption(active,op,tail(1),report)}
+else if(active&&(op==='ROW_PITCH'||op==='STAGGER')){
+ const number=readNumbers(tail(1),singleNumberPattern);
+ if(!number||number.rest){report(op+' 需要一個數值');return}
+ active[op==='ROW_PITCH'?'rowPitch':'stagger']=number.values[0];
+}
+else if(op==='MARGIN'&&active){
+ const margin=readNumbers(tail(1),marginPattern);
+ if(!margin){report('MARGIN 需要一個或兩個數值');return}
+ formatGroup(tail(1),margin);
+ const [x,y=x]=margin.values;
+ if(x<=0||y<=0)report('MARGIN 必須大於 0');
+ else active.margin=[x,y];
+}
+else if(active&&(op==='FUNCTION'||op==='SUBTYPE'||Object.hasOwn(enumOptions,op))){setOption(active,op,tail(1),report)}
+else if(op==='TABLE'){
+ active=null;
+ activeTable=readTable(line,ln,(_,message)=>report(message),formatGroup);
+ if(activeTable)get().tables.push(activeTable);
+}
+else if(op==='TITLE'&&activeTable){activeTable.title=tail(1).replace(/^['"]|['"]$/g,'')}
+else if(op==='MOUNT'){
+ active=null;activeTable=null;
+ const kind=(t[1]||'').toUpperCase(),at=position(2);
+ if(!at)return;
+ if(!['HOLE','STUD','SLOT','DIN'].includes(kind)){report('未知 MOUNT '+kind);return}
+ const mount={kind,x:at.x,y:at.y,d:4,w:12,h:5,l:0};
+ const options=at.rest?at.rest.split(/\s+/):[];
+ let hasWidth=false,hasHeight=false;
+ for(let i=0;i<options.length;i+=2){
+  const key=options[i].toLowerCase(),raw=options[i+1]||'';
+  if(key==='open'){
+   const edge=raw.toUpperCase();
+   if(kind!=='SLOT'||!['TOP','BOTTOM'].includes(edge)){report('OPEN TOP 或 OPEN BOTTOM 僅用於 MOUNT SLOT');return}
+   mount.open=edge;
+   continue;
+  }
+  const value=readNumbers(raw,singleNumberPattern);
+  if(!['d','w','h','l'].includes(key)){report('未知 MOUNT 選項 '+options[i]);return}
+  if(!value||value.values[0]<0){report('MOUNT '+options[i]+' 需要一個非負數值');return}
+  mount[key]=value.values[0];
+  if(key==='w')hasWidth=true;
+  if(key==='h')hasHeight=true;
+ }
+ if(mount.open){
+  if(!hasWidth||mount.w<=0||hasHeight){report('開口 SLOT 需要正數 W，深度由 AT 與 BODY 邊緣決定');return}
+  mount.line=ln;
+ }
+ get().mounts.push(mount);
+}
+else if(/^CN[A-Z0-9_]+$/i.test(op))out.errors.push(`第 ${ln} 行：請改用 CN -${op} 模板 @ x,y`);
+else out.errors.push(`第 ${ln} 行：無法辨識 ${op}`);
+});
+out.views.FRONT.links=resolveLinks(linkDeclarations,out.body,out.errors);
+for(const [view,contents] of Object.entries(out.views)){
+ const ids=new Set();
+ const reserved=new Set(contents.connectors.map(c=>c.id.toUpperCase()));
+ let automatic=0;
+ for(const c of contents.connectors){
+  if(c.id)continue;
+  do{c.id='-CN'+(++automatic)}while(reserved.has(c.id));
+ }
+ const warn=(line,message)=>out.warnings.push('第 '+line+' 行（'+view+'）：'+message);
+ const dimensions=viewDimensions(out.body,view);
+ contents.mounts=validateOpenSlots(contents.mounts,dimensions,out.errors);
+ contents.annotations=contents.annotations.flatMap(item=>item.kind==='LED'
+  ?placeIndicators(item,dimensions,out.errors):[item]);
+ for(const contact of [...contents.connectors,...contents.terminals]){
+  if(contact.keypad&&!placeConnector(contact,dimensions))warn(contact.line,contact.id+' 的外框超出 BODY 視圖尺寸');
+  const id=contact.id.toUpperCase();
+  if(ids.has(id))warn(contact.line,'重複的 ID '+contact.id+'，TABLE '+contact.id+' 採用第一筆');
+  ids.add(id);
+  if(contact.hideLabels||!contact.labelLine)continue;
+  const rows=contact.labelMode==='ROWS';
+  contact.names.forEach((labels,index)=>{
+   const count=rows?pinRowCount(contact,index):pinCount(contact);
+   const directive=rows?'LABEL_ROWS 第 '+(index+1)+' 排':'LABEL';
+   if(labels.length!==count)warn(contact.labelLine,contact.id+' 的 '+directive+' 需要 '+count+' 個標籤，實際 '+labels.length+' 個');
+  });
+ }
+ for(const table of contents.tables){
+  const contacts=tableSources(table,contents);
+  if(table.target!=='ALL'&&!contacts.length)warn(table.line,'TABLE 找不到目標 '+table.target);
+  table.rows=contacts.flatMap(connector=>tablePins(connector));
+  applyTableAssignments(table,table.rows,false,warn);
+  warnMissingTablePins(table,table.rows,warn);
+ }
+}
+if(format){
+ out.formatted=out.errors.length?source:source.split(/(\r?\n)/).map((raw,index)=>{
+  const edits=formattedLines[index/2]||[];
+  for(const {start,end,replacement} of edits.sort((a,b)=>b.start-a.start)){
+   raw=raw.slice(0,start)+replacement+raw.slice(end);
+  }
+  return raw;
+ }).join('');
+}
+return out}
+
+// Wire-side pin ordering from the supplied CN1 drawing. Shell envelope from 3M TS-0669.
+const mdr50Solder={
+ width:7.5,height:36.7,step:2.54,
+ pinWidth:1.18,pinHeight:1.8,
+ columns:[
+  {first:2,last:24,x:-2.55,top:14.16},
+  {first:1,last:25,x:-.9,top:15.24},
+  {first:27,last:49,x:.9,top:14.16},
+  {first:26,last:50,x:2.55,top:15.24}
+ ]
+};
+const mdr50SolderPins=new Map(mdr50Solder.columns.flatMap(({first,last,x,top})=>
+ Array.from({length:(last-first)/2+1},(_,i)=>[first+2*i,[x,top-i*mdr50Solder.step]])));
+
+function pinRowCount(contact,row){
+ return contact.rowCounts?.[row]??contact.cols;
+}
+
+function pinCount(contact){
+ return contact.rowCounts?.reduce((total,count)=>total+count,0)??contact.rows*contact.cols;
+}
+
+function validPin(contact,pin,report){
+ const count=pinCount(contact);
+ if(Number.isSafeInteger(pin)&&pin>=1&&pin<=count)return true;
+ report('Pin '+pin+' 超出腳號範圍 1～'+count);
+ return false;
+}
+
+function pinList(c){
+ let out=[];
+ // START identifies physical Pin 1. ORDER controls traversal from that corner.
+ // For ROW, traverse the start row first; for ODD/COLUMN, traverse columns first.
+ const dsubSocket=c.family==='DSUB'&&c.subtype==='SOCKET';
+ const start=c.start??(dsubSocket?'K9':'K7');
+ const left=start==='K7'||start==='K1',top=start==='K7'||start==='K9';
+ let rows=Array.from({length:c.rows},(_,i)=>top?i:c.rows-1-i);
+ const columnsByRow=rows.map(row=>{
+  const count=pinRowCount(c,row);
+  return Array.from({length:count},(_,i)=>left?i:count-1-i);
+ });
+ let physical=[];
+ if(c.isTerminal||c.order==='ROW'||c.order==='REVERSE'){
+  rows.forEach((row,i)=>{
+   const columns=columnsByRow[i];
+   for(const col of (c.order==='REVERSE'&&i%2?columns.slice().reverse():columns))physical.push([row,col]);
+  });
+ }else{ // ODD and COLUMN: visit same-column contacts first
+  for(let i=0;i<c.cols;i++)rows.forEach((row,j)=>{
+   const col=columnsByRow[j][i];
+   if(col!==undefined)physical.push([row,col]);
+  });
+ }
+ let pinAt=new Map(physical.map(([r,col],i)=>[r+','+col,i+1]));
+ for(let r=0;r<c.rows;r++)for(let col=0;col<pinRowCount(c,r);col++){
+  let pin=pinAt.get(r+','+col);
+  let label=c.hideLabels?'':(c.labelMode==='ROWS'?c.names[r]?.[col]:c.names[0]?.[pin-1])??String(pin);
+  if(!c.hideLabels)label=c.pinOverrides[pin]??label;
+  let x=(c.isTerminal?col:(col-(pinRowCount(c,r)-1)/2+(r===1?c.stagger:0)))*c.pitch;
+  let y=((c.rows-1)/2-r)*c.rowPitch;
+  if(c.family==='MDR50_SOLDER'){
+   const [referenceX,referenceY]=mdr50SolderPins.get(pin),scale=c.pitch/mdr50Solder.step;
+   x=referenceX*scale;
+   y=referenceY*scale;
+  }
+  if(c.family==='RJ45'){
+   x=(col-3.5)*1.02;
+   y=c.subtype==='PLUG'?-3.68:-4.055;
+  }
+  out.push({pin,label,desc:c.functions[pin]||(c.isTerminal?c.func:'')||'',x,y});
+ }
+ return out;
+}
+const f=v=>Number(v.toFixed(3));const pathRect=(x,y,w,h,rx=0)=>`<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="${rx}"/>`;const textSvg=(x,y,value,size=2.8,anchor='middle',extra='')=>`<text x="${f(x)}" y="${f(y)}" font-size="${size}" text-anchor="${anchor}" ${extra}>${esc(value)}</text>`;
+// Exact perimeter from user-supplied RJ45-simple.dxf, modelspace layer 0, units mm.
+// Template coordinates are X right, Y up, with the latch at the top for ROT 0.
+// Eight LINE entities; the dimension/center-circle layer is intentionally excluded.
+const rj45Outline=[
+  [5.9, 2.675], [5.9,-4.475], [-5.9,-4.475],
+  [-5.9, 2.675],[-3.45,2.675],[-3.45,4.475],
+  [3.45,4.475],[3.45,2.675]
+];
+
+// Schematic mating face, with the plug latch above the contact edge.
+const rj45PlugOutline=[
+ [-5.8,-2.35],[-3,-2.35],[-2.3,-4.1],[2.3,-4.1],[3,-2.35],[5.8,-2.35],[5.8,4.1],[-5.8,4.1]
+];
+
+function rj45Face(c){
+ return c.subtype==='PLUG'?rj45PlugOutline:rj45Outline.map(([x,y])=>[x,-y]);
+}
+
+// USB opening profiles in SVG coordinates (X right, Y down).
+const usbOpenings={
+ // FX5UJ front-view Mini-B opening measured from refs/fx5uj-40m_a.dxf.
+ USB_MINIB:[[-3.85,-1.95],[3.85,-1.95],[3.85,.05],[3.35,.55],[3.35,1.95],[-3.35,1.95],[-3.35,.55],[-3.85,.05]],
+ USB_MICROB:[[-3.45,-.925],[3.45,-.925],[3.45,.05],[2.7,.925],[-2.7,.925],[-3.45,.05]]
+};
+
+// TS-0669 sheet 2. Use the keyed shroud as the single visible silhouette.
+function mdrShroud(length,width){
+ const end=[[1.86,-3.75],[1.11,-3.53],[.42,-2.88],[0,-2.09],[.05,-1.21],[.93,2.23],[1.53,3.11],[2.93,3.75]];
+ const left=end.map(([x,y])=>[x*length/36.7-length/2,y*width/7.5]);
+ const right=left.slice().reverse().map(([x,y])=>[-x,y]);
+ return [...left,...right];
+}
+
+function connectorFrame(c,pins){
+ if(c.family==='MDR50_SOLDER'){
+  const scale=c.pitch/mdr50Solder.step,w=mdr50Solder.width*scale,h=mdr50Solder.height*scale;
+  return {bx:-w/2,by:-h/2,w,h};
+ }
+ if(c.family==='USB'||c.family==='RJ45'){
+  const [left,top,right,bottom]=rotatedBounds(c.family==='RJ45'?rj45Face(c):usbOpenings[c.type],0);
+  return {bx:left,by:top,w:right-left,h:bottom-top};
+ }
+ const term=c.family==='TERM'||c.family==='INDEPENDENT';
+ let w=(c.cols-1)*c.pitch+Math.max(term?5:4,c.pitch*(term?0.88:1.55));
+ let h=(c.rows-1)*c.rowPitch+Math.max(term?5:6,c.rowPitch*(term?0.9:1.9));
+ if(c.family==='DSUB'){
+  const scale=c.pitch/dsubReference.pitch;
+  w=dsubReference.shroudWidth*scale+(c.cols-5)*c.pitch;
+  h=(dsubReference.shroudHeight-dsubReference.rowPitch)*scale+Math.abs(c.rowPitch);
+ }
+ // MARGIN means distances from the extremal physical pin centers to the bounding rectangle.
+ // The connector's AT refers to the pin array center; a staggered bounding box may be offset.
+ let bx=-w/2,by=-h/2;
+ if(c.margin){let xs=pins.map(p=>p.x),ys=pins.map(p=>-p.y);let xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);bx=xmin-c.margin[0];by=ymin-c.margin[1];w=xmax-xmin+2*c.margin[0];h=ymax-ymin+2*c.margin[1];}
+ return {bx,by,w,h};
+}
+
+function viewDimensions([w,h,d],view){
+ if(view==='LEFT'||view==='RIGHT')return [d,h];
+ if(view==='TOP'||view==='BOTTOM')return [w,d];
+ return [w,h];
+}
+
+function rotatedBounds(vertices,rot){
+ const angle=-(rot%360)*Math.PI/180,cos=Math.cos(angle),sin=Math.sin(angle);
+ const points=vertices.map(([x,y])=>[x*cos-y*sin,x*sin+y*cos]);
+ const xs=points.map(([x])=>x),ys=points.map(([,y])=>y);
+ return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
+}
+
+function keypadPosition(keypad,[width,height],[left,top,right,bottom]){
+ const key=keypad-1,col=key%3,row=2-Math.floor(key/3);
+ // Align the rotated outline in SVG space, then convert the translation back to DSL Y-up.
+ const align=(slot,extent,min,max)=>{
+  if(slot===0)return -extent/2-min;
+  if(slot===2)return extent/2-max;
+  return -(min+max)/2;
+ };
+ return [align(col,width,left,right),-align(row,height,top,bottom)];
+}
+
+function dsubOutline(c,{bx,by,w,h}){
+ const radius=Math.min(dsubReference.cornerRadius*c.pitch/dsubReference.pitch,w/4,h/2);
+ const slope=Math.min(Math.tan(10*Math.PI/180),(w-2*radius)/(2*h));
+ const sideAngle=Math.atan(slope)*180/Math.PI,offset=(h-2*radius)*slope;
+ const left=bx+radius,right=bx+w-radius,top=by+radius,bottom=by+h-radius;
+ const corners=[
+  [right,top,-90,sideAngle],
+  [right-offset,bottom,sideAngle,90],
+  [left+offset,bottom,90,180-sideAngle],
+  [left,top,180-sideAngle,270]
+ ];
+ const point=(x,y,angle)=>{
+  const radians=angle*Math.PI/180;
+  return [x+radius*Math.cos(radians),y+radius*Math.sin(radians)];
+ };
+ const points=[];
+ const path=corners.map(([x,y,from,to],index)=>{
+  const start=point(x,y,from),end=point(x,y,to);
+  points.push(start,end);
+  // Include the arc extrema in the rotated view for bounds and keypad alignment.
+  const rotation=c.rot%360;
+  for(let step=Math.ceil((from-rotation)/90);step*90+rotation<to;step++){
+   points.push(point(x,y,step*90+rotation));
+  }
+  return (index?'L':'M')+start.map(f).join(' ')+' A '+f(radius)+' '+f(radius)+' 0 0 1 '+end.map(f).join(' ');
+ }).join(' ');
+ return {path,points};
+}
+
+function connectorOutline(c,{bx,by,w,h}){
+ if(c.family==='RJ45')return rj45Face(c);
+ if(c.family==='USB')return usbOpenings[c.type];
+ if(c.family==='MDR50_SOLDER')return mdrShroud(h,w).map(([x,y])=>[-y,x]);
+ if(c.family==='MDR')return mdrShroud(w,h).map(([x,y])=>[x+bx+w/2,y+by+h/2]);
+ if(c.family==='IDC'){
+  const center=bx+w/2,halfKey=Math.min(3,w/4),depth=Math.min(2,h/4);
+  return [[bx,by],[center-halfKey,by],[center-halfKey,by+depth],
+   [center+halfKey,by+depth],[center+halfKey,by],[bx+w,by],[bx+w,by+h],[bx,by+h]];
+ }
+ return null;
+}
+
+function connectorBounds(c,{bx,by,w,h},dsub){
+ const frame={bx,by,w,h};
+ const vertices=c.family==='DSUB'?(dsub??dsubOutline(c,frame)).points
+  :connectorOutline(c,frame)??[[bx,by],[bx+w,by],[bx+w,by+h],[bx,by+h]];
+ return rotatedBounds(vertices,c.rot);
+}
+
+function placeConnector(c,dimensions){
+ const bounds=connectorBounds(c,connectorFrame(c,pinList(c)));
+ [c.x,c.y]=keypadPosition(c.keypad,dimensions,bounds);
+ const [width,height]=dimensions,[left,top,right,bottom]=bounds;
+ return right-left<=width+1e-9&&bottom-top<=height+1e-9;
+}
+
+function linkBounds([w,h],rot){
+ return rotatedBounds([[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]],rot);
+}
+
+function resolveLinks(declarations,body,errors){
+ const links=[],used=new Set();
+ const [width,height]=body;
+ let automatic=0;
+ for(const link of declarations){
+  if(link.invalid)continue;
+  const fail=message=>errors.push('第 '+link.line+' 行：'+message);
+  if(link.ids.length>1&&!link.pitch){fail('LINK 陣列需要 PITCH');continue}
+  const ids=link.ids.length?link.ids:['LINK'+(automatic+1)];
+  if(ids.some(id=>/^-K[1-9]$/i.test(id))){fail('LINK ID 不得使用 K1～K9');continue}
+ const duplicate=ids.find(id=>used.has(id.toUpperCase()));
+  if(duplicate){fail('重複的 LINK ID '+duplicate);continue}
+  const localBounds=linkBounds(link.size||[0,0],link.rot);
+  const [firstX,firstY]=link.keypad?keypadPosition(link.keypad,[width,height],localBounds):[link.x,link.y];
+  const angle=(link.rot%360)*Math.PI/180;
+  const placements=ids.map((id,index)=>{
+   const distance=index*(link.pitch||0);
+   const dx=distance*Math.cos(angle),dy=distance*Math.sin(angle);
+   const x=firstX+dx,y=firstY+dy;
+   const anchor=link.anchor?[link.anchor[0]+dx,link.anchor[1]+dy]
+    :link.type==='RIGHT'?[width/2,y]:link.type==='LEFT'?[-width/2,y]:[x,y];
+   return {id,type:link.type,x,y,anchor,size:link.size,rot:link.rot,
+    displayName:link.displayName??(link.ids.length?id:''),line:link.line};
+  });
+  if(placements.some(({x,y,anchor})=>![x,y,...anchor].every(Number.isFinite))){
+   fail('LINK 位置超出數值範圍');continue;
+  }
+  if(!link.ids.length)automatic++;
+  for(const placement of placements){used.add(placement.id.toUpperCase());links.push(placement)}
+ }
+ return links;
+}
+
+function pinEndMarker(x,y,halfWidth,halfHeight,dx,dy,arc){
+ const halfSize=Math.min(halfWidth,halfHeight);
+ const width=f(Math.min(.16,halfSize*.24));
+ const style=`class="pin-end" fill="none" stroke="#ab7440" stroke-width="${width}"`;
+ if(arc){
+  // The arc opens along local +X before rotating toward the preceding pin.
+  const radius=f(halfSize*.62),angle=f(Math.atan2(dy,dx)*180/Math.PI);
+  return `<path ${style} transform="translate(${f(x)},${f(y)}) rotate(${angle})" d="M 0 ${-radius} A ${radius} ${radius} 0 0 0 0 ${radius}"/>`;
+ }
+ const inset=halfWidth===halfHeight ? .59 : .76;
+ const edgeX=halfWidth*inset,edgeY=halfHeight*inset;
+ const backX=-Math.sign(dx)*edgeX,backY=-Math.sign(dy)*edgeY;
+ let points;
+ if(dx&&dy){
+  points=[[0,backY],[backX,backY],[backX,backY*.68]];
+ }else if(dx){
+  points=[[0,-edgeY],[backX,-edgeY],[backX,edgeY],[0,edgeY]];
+ }else{
+  points=[[-edgeX,0],[-edgeX,backY],[edgeX,backY],[edgeX,0]];
+ }
+ const path=points.map(([px,py],i)=>(i?'L':'M')+f(px)+' '+f(py)).join(' ');
+ return `<path ${style} transform="translate(${f(x)},${f(y)})" d="${path}"/>`;
+}
+
+function geometry(c){
+ const pins=pinList(c),independent=c.family==='INDEPENDENT',term=c.family==='TERM'||independent;
+ const dsub=c.family==='DSUB';
+ const endPin=c.pinEnd==='NONE'?null:pins.find(p=>p.pin===pins.length);
+ const previousPin=endPin&&pins.find(p=>p.pin===endPin.pin-1);
+ const endDx=previousPin?previousPin.x-endPin.x:0;
+ const endDy=previousPin?endPin.y-previousPin.y:0; // SVG Y points down.
+ const rectangular=c.shape==='SQUARE'||c.family==='RJ45'||c.family==='MDR50_SOLDER';
+ const endArc=c.pinEnd==='ARC'||!rectangular;
+ const mdrDigits=String(pins.length).length;
+ const frame=connectorFrame(c,pins);
+ const {bx,by,w,h}=frame;
+ const dsubFace=dsub?dsubOutline(c,frame):null;
+ const outlineBounds=connectorBounds(c,frame,dsubFace);
+ let bounds=independent?[0,0,0,0]:outlineBounds;
+ const includeRotated=([left,top,right,bottom])=>{
+  const vertices=[[left,top],[right,top],[right,bottom],[left,bottom]];
+  bounds=unionBounds(bounds,rotatedBounds(vertices,c.rot));
+ };
+ const labelAngle=-(c.rot%360)*Math.PI/180;
+ const labelCos=Math.cos(labelAngle),labelSin=Math.sin(labelAngle);
+ let outsideLabels='';
+ let s=`<g transform="translate(${c.x},${-c.y}) rotate(${-c.rot})" class="connector">`;
+ const outline=connectorOutline(c,frame);
+ if(outline||dsubFace){
+  const path=dsubFace?.path??outline.map(([x,y],i)=>(i?'L':'M')+f(x)+' '+f(y)).join(' ');
+  const style=dsub?' class="dsub-shroud"'
+   :c.family==='MDR50_SOLDER'?' class="mdr50-shell" stroke-width=".3" stroke-linejoin="round"'
+   :c.family==='RJ45'?' class="rj-outline"'
+   :c.type==='USB_MINIB'?' class="usb-mini-opening"'
+   :c.type==='USB_MICROB'?' class="usb-micro-opening"':'';
+  s+='<path'+style+' d="'+path+' Z"/>';
+ }else if(!independent)s+=pathRect(bx,by,w,h,term?.5:1.5);
+ for(let p of pins){let r=dsub?dsubReference.contactRadius*c.pitch/dsubReference.pitch
+  :independent?c.size/2:(term?Math.min(2.15,c.pitch*.28):Math.max(.32,Math.min(1.35,c.pitch*.27)));
+ let marker=p.pin===1?c.pin1:'NONE',cls=marker==='SOLID'?'pin pin-first':'pin';
+ const markEnd=p===endPin&&(endDx!==0||endDy!==0);
+ // RJ45 contacts are 8 evenly spaced unfilled copper-colored rectangles, on the contact shelf.
+ let px=p.x,py=-p.y;
+ if(c.family==='MDR50_SOLDER'){
+  const scale=c.pitch/mdr50Solder.step,w=mdr50Solder.pinWidth*scale,h=mdr50Solder.pinHeight*scale;
+  const size=.85*scale;
+  s+='<g class="mdr50-pin" stroke-width=".17">'+pathRect(px-w/2,py-h/2,w,h);
+  if(marker==='DOUBLE')s+=pathRect(px-w*.41,py-h*.41,w*.82,h*.82);
+  if(marker==='SOLID')s+='<circle cx="'+f(px-w*.3)+'" cy="'+f(py-h*.35)+'" r="'+f(.12*scale)+'" fill="currentColor"/>';
+  if(markEnd){
+   const markerY=endArc ? py-Math.sign(endDy)*h*.29 : py;
+   s+=pinEndMarker(px,markerY,w/2,endArc?h*.2:h/2,endDx,endDy,endArc);
+  }
+  if(!c.hideLabels)s+=textSvg(px,py+.34*size,p.pin,f(size));
+  s+='</g>';
+  continue;
+ }
+ const pinStroke=(c.family==='MDR'||markEnd)?` style="stroke-width:${f(Math.min(.24,r*.28))}"`:'';
+ if(c.family==='RJ45'){
+   // Contact pin pitch 1.02 mm is a generic 8P8C reference, NOT measured in this DXF.
+   // Copper is a stroke color ONLY: every contact is an unfilled closed outline.
+   const cw=0.65, ch=0.65;
+   s+=`<rect class="rj-pin" x="${f(px-cw/2)}" y="${f(py-ch/2)}" width="${cw}" height="${ch}"/>`;
+   if(marker==='DOUBLE')s+=`<rect class="rj-pin-inner" x="${f(px-cw*.29)}" y="${f(py-ch*.29)}" width="${f(cw*.58)}" height="${f(ch*.58)}"/>`;
+ }else if(c.shape==='SQUARE'){
+ s+=`<rect class="${cls}"${pinStroke} x="${f(px-r)}" y="${f(py-r)}" width="${f(2*r)}" height="${f(2*r)}"/>`;
+ if(marker==='DOUBLE')s+=`<rect class="pin-inner" x="${f(px-r*.58)}" y="${f(py-r*.58)}" width="${f(2*r*.58)}" height="${f(2*r*.58)}"/>`
+ }else{
+ s+=`<circle class="${cls}"${pinStroke} cx="${f(px)}" cy="${f(py)}" r="${f(r)}"/>`;
+ if(marker==='DOUBLE')s+=`<circle class="pin-inner" cx="${f(px)}" cy="${f(py)}" r="${f(r*.58)}"/>`
+ }
+ const pinHalfSize=c.family==='RJ45' ? .325 : r;
+ if(markEnd)s+=pinEndMarker(px,py,pinHalfSize,pinHalfSize,endDx,endDy,endArc);
+ if(c.family!=='RJ45')includeRotated(centeredBounds(px,py,2*r,2*r));
+ // Place pin labels relative to their own physical pin centre, after STAGGER.
+ // AUTO preserves the original template convention; user overrides can select eight directions.
+ if(c.hideLabels){/* LABEL NONE hides pin text; pin geometry and Pin 1 remain visible. */}
+ else if((c.family==='RJ45'||c.family==='USB') && !c.labelPos){/* Compact ports default to no individual text. */}
+ else {
+  let labelSize=independent?Math.max(2.5,Math.min(4,c.size*.54)):(term?Math.min(1.4,Math.max(1.15,c.pitch*.18)):Math.max(1.8,Math.min(2.5,c.pitch*.8)));
+  let rowIndex=Math.max(0,Math.min(c.rows-1,Math.round((c.rows-1)/2-p.y/c.rowPitch)));
+  let direction=c.labelPos?.[rowIndex]??c.labelPos?.[0]??'AUTO';
+  if(direction==='OUTSIDE'){
+   const [left,,right]=outlineBounds;
+   const screenX=px*labelCos-py*labelSin,screenY=px*labelSin+py*labelCos;
+   const onLeft=screenX<(left+right)/2;
+   const x=onLeft?left-.85:right+.85,y=screenY+.55,anchor=onLeft?'end':'start';
+   outsideLabels+=textSvg(c.x+x,-c.y+y,p.label,1.65,anchor);
+   bounds=unionBounds(bounds,textBounds(x,y,p.label,1.65,anchor));
+   continue;
+  }
+  if(direction==='AUTO')direction=independent?'RIGHT':(term||dsub?(rowIndex===0?'ABOVE':'BELOW'):'ABOVE');
+  const mdrNumber=c.family==='MDR'&&p.label===String(p.pin);
+  if(direction==='CENTER'&&(markEnd||mdrNumber)){
+   const digits=mdrNumber?mdrDigits:Math.max(1,Array.from(p.label).length);
+   labelSize=Math.min(labelSize,pinHalfSize*.8/digits);
+  }
+  if(!independent&&(direction==='ABOVE'||direction==='BELOW')&&p.label===String(p.pin)){
+   // Leave horizontal space between adjacent numeric labels on dense connectors.
+   const pitch=c.family==='RJ45'?spec.RJ45[2]:c.pitch;
+   const digits=mdrNumber?mdrDigits:p.label.length;
+   labelSize=Math.min(labelSize,1.5*pitch/digits);
+  }
+  const dsubScale=c.pitch/dsubReference.pitch;
+  if(dsub&&(direction==='ABOVE'||direction==='BELOW'))labelSize=Math.min(labelSize,1.1*dsubScale);
+  const gap=dsub ? .23*dsubScale : independent?1.1:(term?0.12:0.9);
+  let tx=px,ty=py,anchor='middle';
+  // SVG text uses the baseline rather than a centre point.
+  switch(direction){
+   case 'CENTER': ty=py+labelSize*.34;break;
+   case 'ABOVE': ty=py-r-gap;break;
+   case 'BELOW': ty=py+r+gap+labelSize*(dsub ? .78 : 1);break;
+   case 'LEFT': tx=px-r-gap;ty=py+labelSize*.34;anchor='end';break;
+   case 'RIGHT': tx=px+r+gap;ty=py+labelSize*.34;anchor='start';break;
+   case 'TOP_LEFT': tx=px-r-gap;ty=py-r-gap;anchor='end';break;
+   case 'TOP_RIGHT': tx=px+r+gap;ty=py-r-gap;anchor='start';break;
+   case 'BOTTOM_LEFT': tx=px-r-gap;ty=py+r+gap+labelSize;anchor='end';break;
+   case 'BOTTOM_RIGHT': tx=px+r+gap;ty=py+r+gap+labelSize;anchor='start';break;
+  }
+  s+=textSvg(tx,ty,p.label,labelSize,anchor);
+  includeRotated(textBounds(tx,ty,p.label,labelSize,anchor));
+ }
+ }
+ if(c.displayName&&!c.namePos){
+  const title=c.displayName+(c.func?' · '+c.func:''),y=h/2+5.5;
+  s+=textSvg(0,y,title,3.1);
+  includeRotated(textBounds(0,y,title,3.1));
+ }
+ const [left,top,right,bottom]=bounds;
+ return {
+  svg:s+'</g>'+(outsideLabels?'<g class="connector-labels">'+outsideLabels+'</g>':''),
+  bounds:[left+c.x,top-c.y,right+c.x,bottom-c.y]
+ };
+}
+
+function positionedConnectorName(c){
+ const [dx,dy]=labelVectors[c.namePos];
+ const [left,top,right,bottom]=connectorBounds(c,connectorFrame(c,pinList(c)));
+ const size=2,gap=1.2;
+ const x=c.x+(dx<0?left-gap:dx>0?right+gap:(left+right)/2);
+ const y=-c.y+(dy<0?top-gap:dy>0?bottom+gap+size:(top+bottom)/2+size*.34);
+ const anchor=dx<0?'end':dx>0?'start':'middle';
+ return {
+  svg:'<g class="connector-labels">'+textSvg(x,y,c.displayName,size,anchor)+'</g>',
+  bounds:textBounds(x,y,c.displayName,size,anchor)
+ };
+}
+function tableSources(table,v){
+ const sources=[...v.connectors,...(v.terminals||[])];
+ if(table.target==='ALL')return sources;
+ const contact=sources.find(c=>c.id.toUpperCase()===table.target)
+  ??(!table.target.startsWith('-')?sources.find(c=>c.id.toUpperCase()==='-'+table.target):undefined);
+ return contact?[contact]:[];
+}
+function tablePins(connector,member){
+ const addresses=member?.addresses.get(connector);
+ const cn=member?.id?member.id+' / '+connector.id:connector.id;
+ return pinList(connector).sort((a,b)=>a.pin-b.pin).map(pin=>({
+  ...pin,cn,address:addresses?.get(pin.pin)??''
+ }));
+}
+
+function applyTableAssignments(table,rows,project,warn){
+ for(const [key,{description,line}] of table.assignments){
+  const addressed=project?rows.filter(row=>row.address.toUpperCase()===key):[];
+  const byPin=!project&&table.target!=='ALL'&&/^\d+$/.test(key);
+  const matches=addressed.length?addressed:rows.filter(row=>!row.address&&
+   (byPin?row.pin===Number(key):row.label.toUpperCase()===key));
+  if(matches.length!==1){
+   warn(line,'TABLE 的 '+key+(matches.length?' 對應多個 Pin':' 找不到對應的 Pin'));
+   continue;
+  }
+  const [row]=matches;
+  if(row.assigned){warn(line,'TABLE 重複指定 '+row.cn+' Pin '+row.pin);continue}
+  row.desc=description;
+  row.assigned=true;
+  if(project&&!row.address)row.address=row.label;
+ }
+}
+
+function prepareSetTable(table,views,warn){
+ const groups=views.map(view=>view.assembly.flatMap(member=>
+  Object.values(member.part.views).flatMap(({connectors,terminals})=>
+   [...connectors,...terminals].map(connector=>tablePins(connector,member)))));
+ const allRows=groups.flat(2);
+ applyTableAssignments(table,allRows,true,warn);
+ const onlyAddressed=table.assignments.size||allRows.some(row=>row.address);
+ const selectedRows=groups.map(contacts=>contacts.filter(pins=>!onlyAddressed||pins.some(row=>row.address)).flat());
+ views.forEach((view,i)=>{
+  const rows=selectedRows[i];
+  if(rows.length)view.tables.push({...table,rows,project:true});
+ });
+ warnMissingTablePins(table,selectedRows.flat(),warn);
+ if(!allRows.length)warn(table.line,'TABLE '+table.target+' 沒有可顯示的 Pin');
+}
+
+function warnMissingTablePins(table,rows,warn){
+ if(!table.pinGroups||!rows.length)return;
+ const available=new Set(rows.map(row=>row.pin));
+ const missing=table.pinGroups.flatMap(group=>[...group].filter(pin=>!available.has(pin)));
+ if(missing.length)warn(table.line,'TABLE SPLIT 找不到 Pin '+missing.join(', '));
+}
+
+function tableTextWidth(value,size){
+ return Array.from(String(value)).reduce((width,char)=>width+(/[^\x00-\xff]/.test(char)?size:size*.72),0);
+}
+
+function pinTableGrid(title,headers,rows,widths,x,y,tableHandles){
+ const titleHeight=8.5,headerHeight=7.2,rowHeight=6.4;
+ const width=widths.reduce((sum,value)=>sum+value,0);
+ const height=titleHeight+headerHeight+rows.length*rowHeight;
+ let svg='<g class="pin-table" transform="translate('+f(x)+','+f(y)+')">';
+ svg+='<rect width="'+f(width)+'" height="'+f(height)+'" fill="#fff"/>';
+ svg+='<rect y="'+titleHeight+'" width="'+f(width)+'" height="'+headerHeight+'" fill="#d9f1ec"/>';
+ svg+=textSvg(2,5.2,title,3.5,'start','font-weight="700"');
+ let left=0;
+ for(const [index,header] of headers.entries()){
+  svg+=textSvg(left+2,titleHeight+4.9,header,2.9,'start','font-weight="700"');
+  rows.forEach((row,i)=>{
+   svg+=textSvg(left+2,titleHeight+headerHeight+i*rowHeight+4.3,row[index],2.75,'start');
+  });
+  if(index)svg+='<path d="M'+f(left)+' '+titleHeight+' V'+f(height)+'"/>';
+  left+=widths[index];
+ }
+ for(let i=0;i<rows.length;i++){
+  svg+='<path d="M0 '+f(titleHeight+headerHeight+i*rowHeight)+' H'+f(width)+'"/>';
+ }
+ if(tableHandles)svg+='<rect data-table-header="" width="'+f(width)+'" height="'+(titleHeight+headerHeight)+'" fill="transparent" stroke="none"/>';
+ return {svg:svg+'</g>',bounds:[x,y,x+width,y+height]};
+}
+
+function pinTablePanels(table,title){
+ const {pinGroups,rows}=table;
+ if(pinGroups){
+  return pinGroups.map((pins,index)=>({
+   title:title+' · '+(index+1),rows:rows.filter(row=>pins.has(row.pin))
+  }));
+ }
+ if(table.split)return [
+  {title:title+' · ODD',rows:rows.filter(row=>row.pin%2===1)},
+  {title:title+' · EVEN',rows:rows.filter(row=>row.pin%2===0)}
+ ];
+ return [{title,rows}];
+}
+
+function drawPinTable(table,reference,tableHandles){
+ if(!table.rows.length)return null;
+ const showConnector=table.project||table.target==='ALL';
+ const columns=[
+  ...(showConnector?[['CN',17,'cn']]:[]),
+  ['PIN',15,'pin'],['NAME',24,'label'],
+  ...(table.project?[['ADDR',27,'address']]:[]),
+  ['FUNCTION',50,'desc']
+ ];
+ const title=table.title||table.target+' Pin Table';
+ const groups=pinTablePanels(table,title);
+ const panels=groups.map(group=>{
+  const widths=columns.map(([header,min,key])=>group.rows.reduce((width,row)=>
+   Math.max(width,tableTextWidth(row[key],2.75)+4),Math.max(min,tableTextWidth(header,2.9)+4)));
+  const width=widths.reduce((sum,value)=>sum+value,0);
+  widths[widths.length-1]+=Math.max(0,tableTextWidth(group.title,3.5)+4-width);
+  return {...group,widths,width:widths.reduce((sum,value)=>sum+value,0)};
+ });
+ const gap=5;
+ const width=panels.reduce((sum,panel)=>sum+panel.width,0)+gap*(panels.length-1);
+ const height=15.7+6.4*Math.max(...panels.map(panel=>panel.rows.length));
+ let x=table.x,y=-table.y;
+ if(table.anchor){
+  const [dx,dy]=labelVectors[labelAliases[table.anchor]];
+  const [left,top,right,bottom]=reference;
+  x=dx<0?left-gap-width:dx>0?right+gap:(left+right-width)/2;
+  y=dy<0?top-gap-height:dy>0?bottom+gap:(top+bottom-height)/2;
+ }
+ let svg='';
+ const bounds=[x,y,x+width,y+height];
+ for(const panel of panels){
+  const grid=pinTableGrid(panel.title,columns.map(([header])=>header),
+   panel.rows.map(row=>columns.map(([, ,key])=>row[key])),panel.widths,x,y,tableHandles);
+  svg+=grid.svg;
+  x+=panel.width+gap;
+ }
+ return {svg,bounds};
+}
+function linkSvg(link){
+ if(!link.size&&link.type==='BACK')return null;
+ const {x,y,rot,size,displayName}=link;
+ const outline=size?linkBounds(size,rot):[-.8,-.8,.8,.8];
+ let [left,top,right,bottom]=outline;
+ let svg='<g class="module-link" transform="translate('+f(x)+','+f(-y)+')">';
+ if(size){
+  const [w,h]=size;
+  svg+='<g transform="rotate('+(-(rot%360))+')">'+pathRect(-w/2,-h/2,w,h)+'</g>';
+ }else svg+='<circle r=".8"/>';
+ if(displayName){
+  svg+=textSvg(0,top-1.5,displayName,2.8);
+  [left,top,right,bottom]=unionBounds([left,top,right,bottom],textBounds(0,top-1.5,displayName,2.8));
+ }
+ if(link.type==='LEFT'||link.type==='RIGHT'){
+  const direction=link.type==='LEFT'?-1:1;
+  const [outlineLeft,,outlineRight]=outline;
+  const start=(direction<0?outlineLeft:outlineRight)+direction*1.5;
+  const tip=start+direction*4,head=tip-direction*1.5;
+  svg+='<path class="link-arrow" d="M'+f(start)+' 0 H'+f(tip)+' M'+f(head)+' -1.25 L'+f(tip)+' 0 L'+f(head)+' 1.25"/>';
+  left=Math.min(left,tip);right=Math.max(right,tip);
+  top=Math.min(top,-1.25);bottom=Math.max(bottom,1.25);
+ }
+ return {svg:svg+'</g>',bounds:[x+left,-y+top,x+right,-y+bottom]};
+}
+function validateOpenSlots(mounts,[width,height],errors){
+ const corner=Math.min(1,width/2,height/2),occupied=[];
+ return mounts.filter(slot=>{
+  if(!slot.open)return true;
+  const r=slot.w/2,halfW=width/2,halfH=height/2,y=-slot.y;
+  const fromTop=slot.open==='TOP';
+  const left=slot.x-r,right=slot.x+r,top=fromTop?-halfH:y-r,bottom=fromTop?y+r:halfH;
+  const outside=left<-halfW+corner||right>halfW-corner||y<-halfH||y>halfH
+   ||(fromTop?bottom>=halfH:top<=-halfH);
+  const overlap=occupied.some(box=>left<=box.right&&right>=box.left&&top<=box.bottom&&bottom>=box.top);
+  if(outside||overlap){errors.push('第 '+slot.line+' 行：開口 SLOT 超出 BODY 直邊範圍或與其他開口槽重疊');return false}
+  occupied.push({left,top,right,bottom});
+  return true;
+ });
+}
+
+function bodySvg([width,height],mounts){
+ const openSlots=mounts.filter(m=>m.open);
+ const w=width/2,h=height/2;
+ if(!openSlots.length)return pathRect(-w,-h,width,height,1);
+ const r=Math.min(1,w,h);
+ const openings=edge=>{
+  const top=edge==='TOP',direction=top?1:-1,edgeY=top?-h:h;
+  return openSlots.filter(m=>m.open===edge).sort((a,b)=>direction*(a.x-b.x)).map(m=>{
+   const radius=m.w/2,y=f(-m.y);
+   const entry=f(m.x-direction*radius),exit=f(m.x+direction*radius);
+   return ' H'+entry+' V'+y+' A'+f(radius)+' '+f(radius)+' 0 0 0 '+exit+' '+y+' V'+f(edgeY);
+  }).join('');
+ };
+ const corner=(x,y)=>' A'+f(r)+' '+f(r)+' 0 0 1 '+f(x)+' '+f(y);
+ let path='M'+f(-w+r)+' '+f(-h)+openings('TOP')+' H'+f(w-r)+corner(w,-h+r);
+ path+=' V'+f(h-r)+corner(w-r,h)+openings('BOTTOM')+' H'+f(-w+r)+corner(-w,h-r);
+ path+=' V'+f(-h+r)+corner(-w+r,-h)+' Z';
+ return '<path class="body-with-open-slots" d="'+path+'"/>';
+}
+
+function indicatorLabel(a){
+ const r=a.d/2,[dx,dy]=labelVectors[a.labelPos];
+ const x=dx*(r+.65);
+ const y=dy<0?-r-.65:dy>0?r+2.2:.5;
+ return [x,y,dx<0?'end':dx>0?'start':'middle'];
+}
+function drawPart(model,vname,showGuides=true,bodyFill=false,tableHandles=false){
+ const v=model.views[vname]??emptyView();
+ const [width,height]=viewDimensions(model.body,vname);
+ const bodyBounds=centeredBounds(0,0,width,height);
+ let bounds=model.hideBody?null:bodyBounds;
+ let svg=model.hideBody?'':'<g class="body"'+(bodyFill?' style="fill:#fff"':'')+'>'+bodySvg([width,height],v.mounts)+'</g>';
+ const include=box=>{bounds=bounds?unionBounds(bounds,box):box};
+ if(showGuides&&!model.hideBody){
+  const x=width/2+9,y=height/2+9;
+  svg+='<g class="axes"><path d="M'+(-x)+' 0 H'+x+' M0 '+(-y)+' V'+y+'"/></g>';
+ }
+ for(const m of v.mounts){
+  if(m.open)continue;
+  const x=m.x,y=-m.y;
+  if(m.kind==='HOLE'||m.kind==='STUD'){
+   const radius=m.d/2,stud=m.kind==='STUD';
+   const outerRadius=Math.max(radius+(stud?1:0),showGuides?4:0);
+   svg+='<g class="mount"><circle cx="'+x+'" cy="'+y+'" r="'+radius+'"/>';
+   if(stud)svg+='<circle cx="'+x+'" cy="'+y+'" r="'+(radius+1)+'" stroke-dasharray="1,1"/>';
+   if(showGuides)svg+='<path d="M'+(x-4)+' '+y+' h8 M'+x+' '+(y-4)+' v8"/>';
+   svg+='</g>';
+   include(centeredBounds(x,y,2*outerRadius,2*outerRadius));
+  }else{
+   const box=centeredBounds(x,y,m.w,m.h);
+   svg+='<g class="mount">'+pathRect(box[0],box[1],m.w,m.h,m.kind==='SLOT'?m.h/2:1)+'</g>';
+   include(box);
+  }
+ }
+ for(const a of v.annotations){
+  const x=a.x,y=-a.y;
+  if(a.kind==='LED'){
+   const r=a.d/2,[labelX,labelY,anchor]=indicatorLabel(a);
+   svg+='<g class="indicator'+(a.color?' indicator-'+a.color:'')+'" transform="translate('+f(x)+','+f(y)+')">';
+   svg+='<circle r="'+f(r)+'"/>'+textSvg(labelX,labelY,a.value,1.55,anchor)+'</g>';
+   include(centeredBounds(x,y,a.d,a.d));
+   include(textBounds(x+labelX,y+labelY,a.value,1.55,anchor));
+  }else{
+   const [left,top]=centeredBounds(x,y,a.w,a.h);
+   if(a.kind==='BOX'){
+    svg+='<rect class="panel-box" x="'+f(left)+'" y="'+f(top)+'" width="'+f(a.w)+'" height="'+f(a.h)+'" rx="1.4"/>';
+    include(centeredBounds(x,y,a.w,a.h));
+   }else{
+    const baseline=y+a.h*.34,size=a.h*.88;
+    svg+='<text class="annotation '+a.kind.toLowerCase()+'" x="'+f(left)+'" y="'+f(baseline)+'" font-size="'+f(size)+'" textLength="'+f(a.w)+'" lengthAdjust="spacingAndGlyphs">'+esc(a.value)+'</text>';
+    include([left,baseline-size,left+a.w,baseline+size*.25]);
+   }
+  }
+ }
+ if(showGuides){
+  for(const link of v.links){
+   const drawing=linkSvg(link);
+   if(!drawing)continue;
+   svg+=drawing.svg;
+   include(drawing.bounds);
+  }
+ }
+ for(const c of [...v.connectors,...v.terminals]){
+  const drawing=geometry(c);
+  if(tableHandles){
+   const caption=c.namePos&&c.displayName?positionedConnectorName(c):null;
+   svg+=movableGroup(c,drawing.svg+(caption?.svg??''),[c.x,-c.y],drawing.bounds,bodyBounds,true);
+  }else svg+=drawing.svg;
+  include(drawing.bounds);
+ }
+ for(const c of v.connectors){
+  if(!c.namePos||!c.displayName)continue;
+  const caption=positionedConnectorName(c);
+  if(!tableHandles)svg+=caption.svg;
+  include(caption.bounds);
+ }
+ bounds??=bodyBounds;
+ return showGuides?drawViewTables(v.tables,svg,bounds,tableHandles,bodyBounds):{svg,bounds};
+}
+
+function movableGroup(object,svg,origin,box,reference,wholeObject=false){
+ const line=object.sourceLine??object.line;
+ const span=[object.positionStart,object.positionEnd];
+ const [left,top,right,bottom]=box;
+ const hit=wholeObject?'<rect x="'+f(left)+'" y="'+f(top)+'" width="'+f(right-left)
+  +'" height="'+f(bottom-top)+'" fill="transparent" stroke="none"/>':'';
+ return '<g data-move-line="'+line+'" data-move-span="'+span.join(' ')+'" data-move-origin="'+origin.map(f).join(' ')
+  +'" data-move-box="'+box.map(f).join(' ')+'" data-move-reference="'+(reference?.map(f).join(' ')??'')+'"'
+  +(wholeObject?' data-move-object=""':'')+'>'+hit+svg+'</g>';
+}
+
+function drawViewTables(tables,svg,bounds,tableHandles,snapReference=bounds){
+ const reference=bounds;
+ for(const table of tables){
+  const drawing=drawPinTable(table,reference,tableHandles);
+  if(!drawing)continue;
+  svg+=tableHandles?movableGroup(table,drawing.svg,drawing.bounds.slice(0,2),drawing.bounds,snapReference):drawing.svg;
+  bounds=unionBounds(bounds,drawing.bounds);
+ }
+ return {svg,bounds};
+}
+
+function drawPlaceholder(part){
+ const [w,h]=part.body;
+ const fit=Array.from(part.name).length*1.8>w-4?' textLength="'+f(w-4)+'" lengthAdjust="spacingAndGlyphs"':'';
+ const label=textSvg(0,.8,part.name,2.8,'middle','fill="#596473" font-family="Arial,sans-serif"'+fit);
+ const outline='<g fill="#eef1f4" stroke="#8b96a5" stroke-width=".55" stroke-dasharray="2,1">'
+  +pathRect(-w/2,-h/2,w,h,1)+'</g>';
+ return {svg:outline+label,bounds:[-w/2,-h/2,w/2,h/2]};
+}
+
+function addressTable(member,x,y){
+ const rows=[];
+ const connectors=[...member.addresses].sort(([a],[b])=>a.line-b.line);
+ for(const [connector,addresses] of connectors){
+  for(const {pin,label} of pinList(connector).sort((a,b)=>a.pin-b.pin)){
+   rows.push([connector.id,String(pin),label,addresses.get(pin)??'']);
+  }
+ }
+ if(!rows.length)return null;
+ const headers=['CN','PIN','NAME','ADDR'];
+ const widths=[17,15,24,27].map((min,i)=>
+  Math.max(min,...rows.map(row=>Array.from(row[i]).length*1.85+4)));
+ const title=member.id+' · ADDR';
+ const width=Math.max(widths.reduce((a,b)=>a+b,0),Array.from(title).length*2.1+4);
+ const top=8.5,rowHeight=6.4,height=top+(rows.length+1)*rowHeight;
+ let svg='<g class="pin-table" transform="translate('+f(x)+','+f(y)+')">';
+ svg+='<rect x="0" y="0" width="'+f(width)+'" height="'+f(height)+'" fill="#fff"/>';
+ svg+='<rect x="0" y="'+top+'" width="'+f(width)+'" height="'+rowHeight+'" fill="#d9f1ec"/>';
+ svg+=textSvg(2,5.4,title,3.5,'start','font-weight="700"');
+ let cx=0;
+ headers.forEach((header,i)=>{
+  svg+=textSvg(cx+2,top+4.5,header,2.9,'start','font-weight="700"');
+  rows.forEach((row,j)=>{svg+=textSvg(cx+2,top+(j+1)*rowHeight+4.5,row[i],2.75,'start')});
+  cx+=widths[i];
+  if(i<headers.length-1)svg+='<path d="M'+f(cx)+' '+top+' V'+f(height)+'"/>';
+ });
+ for(let i=1;i<=rows.length;i++)svg+='<path d="M0 '+f(top+i*rowHeight)+' H'+f(width)+'"/>';
+ return {svg:svg+'</g>',bounds:[x,y,x+width,y+height]};
+}
+
+function drawAssembly(view,tableHandles){
+ let svg='',bounds=null;
+ for(const {id,part,x,y,overlaid} of view.assembly){
+  const drawing=part.placeholder?drawPlaceholder(part):drawPart(part,'FRONT',false,overlaid);
+  const labelY=drawing.bounds[1]-2.5;
+  const tag=id?textSvg(0,labelY,id,2.8,'middle','class="annotation model"'):'';
+  svg+='<g transform="translate('+f(x)+','+f(-y)+')">'+tag+drawing.svg+'</g>';
+  const [left,top,right,bottom]=id
+   ?unionBounds(drawing.bounds,textBounds(0,labelY,id,2.8)):drawing.bounds;
+  const box=[left+x,top-y,right+x,bottom-y];
+  bounds=bounds?unionBounds(bounds,box):box;
+ }
+ if(!bounds)return {svg,bounds:[0,0,0,0]};
+ const labelY=bounds[1]-4;
+ svg=textSvg(bounds[0],labelY,view.title,3.5,'start','class="annotation model"')+svg;
+ bounds[1]=labelY-4;
+ bounds[2]=Math.max(bounds[2],bounds[0]+Array.from(view.title).length*3.5);
+ if(view.tables.length)return drawViewTables(view.tables,svg,bounds,tableHandles);
+ for(const member of view.assembly){
+  if(!member.addresses.size)continue;
+  const table=addressTable(member,bounds[0],bounds[3]+9);
+  if(table){svg+=table.svg;bounds=unionBounds(bounds,table.bounds)}
+ }
+ return {svg,bounds};
+}
+
+function drawPlacedParts(placements,vname,tableHandles){
+ let svg='',bounds=null;
+ for(const placement of placements){
+  const {part,x,y}=placement;
+  const drawing=drawPart(part,vname);
+  const [width,height]=viewDimensions(part.body,vname);
+  const drawingBox=unionBounds(drawing.bounds,centeredBounds(0,0,width+18,height+18));
+  const [left,top]=drawingBox;
+  const titleY=top-4;
+  const title=textSvg(left,titleY,part.name,3.5,'start','class="annotation model"');
+  const [xmin,ymin,xmax,ymax]=unionBounds(drawingBox,textBounds(left,titleY,part.name,3.5,'start'));
+  const group='<g transform="translate('+f(x)+','+f(-y)+')">'+title+drawing.svg+'</g>';
+  const bodyBox=centeredBounds(x,-y,width,height);
+  svg+=tableHandles?movableGroup(placement,group,[x,-y],bodyBox,null,true):group;
+  const box=[xmin+x,ymin-y,xmax+x,ymax-y];
+  bounds=bounds?unionBounds(bounds,box):box;
+ }
+ return {svg,bounds};
+}
+
+function draw(model,vname,tableHandles=false){
+const view=model.views[vname];
+const {svg,bounds}=view?.placements?drawPlacedParts(view.placements,vname,tableHandles)
+ :view?.assembly?drawAssembly(view,tableHandles):drawPart(view?.part??model,view?.viewName??vname,true,false,tableHandles);
+let margin=13,[xmin,ymin,xmax,ymax]=bounds,vb=[xmin-margin,ymin-margin,xmax-xmin+2*margin,ymax-ymin+2*margin];let drawing=`<svg xmlns="http://www.w3.org/2000/svg" width="${f(vb[2])}mm" height="${f(vb[3])}mm" viewBox="${vb.map(f).join(' ')}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(view?.title??view?.part?.name??model.name)} ${esc(view?.viewName??vname)} view"><style>.indicator{fill:none;stroke:#586477;stroke-width:.5}.indicator-red{stroke:#b53b45}.indicator-green{stroke:#237d45}.indicator-yellow{stroke:#a27808}.indicator-blue{stroke:#2869b3}.indicator-white{stroke:#8c97a5;fill:#fff}.indicator text{fill:#263950;stroke:none;font-family:Arial,sans-serif}.panel-box{fill:none;stroke:#8396aa;stroke-width:.5}.annotation{fill:#243750;font-family:Arial,sans-serif}.annotation.brand{font-weight:800;letter-spacing:.2px}.annotation.model{font-weight:600}.body{fill:none;stroke:#2c3748;stroke-width:0.8}.module-link{fill:none;stroke:#7c5cc4;stroke-width:.5;stroke-dasharray:1.8,1.2}.module-link .link-arrow{stroke-dasharray:none}.module-link text{fill:#63449d;stroke:none;font-family:Arial,sans-serif}.connector{fill:none;stroke:#087e78;stroke-width:.65}.usb-mini-opening,.usb-micro-opening{stroke-width:.26}.pin{fill:none;stroke:#ab7440;stroke-width:.24}.pin-first{fill:none;stroke:#ab7440;stroke-width:.24}.pin-inner{fill:none;stroke:#ab7440;stroke-width:.18}.rj-pin{fill:none;stroke:#ab7440;stroke-width:.14}.rj-pin-inner{fill:none;stroke:#ab7440;stroke-width:.12}.mount{fill:none;stroke:#bb5b36;stroke-width:.7}.axes{fill:none;stroke:#bcc8d2;stroke-width:.35;stroke-dasharray:2,2}.axes circle{fill:#ed7951;stroke:none}.pin-table{font-family:Arial,sans-serif;fill:none;stroke:#65758a;stroke-width:.3}.pin-table text{fill:#25334b;stroke:none}.connector text,.connector-labels text{fill:#263950;stroke:none;font-family:Arial,sans-serif}</style>${svg}</svg>`;return drawing}
+
+const dxfLayers={
+ EPART_BODY:7,EPART_MOUNT:3,EPART_CONNECTOR:4,EPART_PIN:2,EPART_TEXT:7,EPART_INDICATOR:1
+};
+
+function dxfPath(path){
+ // The preview renderer emits only moves, lines and circular arcs.
+ const tokens=path.match(/[a-z]|[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)??[];
+ const contours=[];
+ let contour=null,x=0,y=0;
+ const read=()=>Number(tokens.shift());
+ while(tokens.length){
+  const command=tokens.shift();
+  const relative=command===command.toLowerCase();
+  let nextX=x,nextY=y,bulge=0;
+  switch(command.toUpperCase()){
+   case 'M':
+   case 'L': nextX=read()+(relative?x:0);nextY=read()+(relative?y:0);break;
+   case 'H': nextX=read()+(relative?x:0);break;
+   case 'V': nextY=read()+(relative?y:0);break;
+   case 'A':{
+    const radius=read(),radiusY=read(),rotation=read(),large=read(),sweep=read();
+    nextX=read()+(relative?x:0);
+    nextY=read()+(relative?y:0);
+    if(radius!==radiusY||rotation!==0)throw Error('DXF 遇到不支援的橢圓弧');
+    const chord=Math.hypot(nextX-x,nextY-y);
+    if(radius>0&&chord>0){
+     const halfAngle=Math.asin(Math.min(1,chord/(2*radius)));
+     bulge=Math.tan((large?Math.PI-halfAngle:halfAngle)/2)*(sweep?-1:1);
+    }
+    break;
+   }
+   case 'Z': contour.closed=true;continue;
+   default: throw Error('DXF 遇到不支援的路徑指令 '+command);
+  }
+  if(!Number.isFinite(nextX)||!Number.isFinite(nextY))throw Error('DXF 路徑座標無效');
+  if(command.toUpperCase()==='M'){
+   contour={points:[],closed:false};
+   contours.push(contour);
+  }else contour.points.at(-1)[2]=bulge;
+  contour.points.push([nextX,nextY,0]);
+  x=nextX;y=nextY;
+ }
+ return contours;
+}
+
+function dxfRect(x,y,w,h,radius){
+ const r=Math.min(radius,w/2,h/2),corner=-Math.tan(Math.PI/8);
+ if(r<=0)return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+ return [[x+r,y],[x+w-r,y,corner],[x+w,y+r],[x+w,y+h-r,corner],
+  [x+w-r,y+h],[x+r,y+h,corner],[x,y+h-r],[x,y+r,corner]];
+}
+
+function makeDxf(root){
+ const records=[];
+ let nextHandle=0x100;
+ const handle=()=> (nextHandle++).toString(16).toUpperCase();
+ const add=(...pairs)=>{for(let i=0;i<pairs.length;i+=2)records.push(pairs[i]+'\r\n'+pairs[i+1]+'\r\n')};
+ const section=(name,write)=>{add(0,'SECTION',2,name);write();add(0,'ENDSEC')};
+ const table=(name,count,write)=>{
+  const owner=handle();
+  add(0,'TABLE',2,name,5,owner,330,'0',100,'AcDbSymbolTable',70,count);
+  write(owner);
+  add(0,'ENDTAB');
+ };
+ const symbol=(type,owner,subclass,name,...fields)=>
+  add(0,type,5,handle(),330,owner,100,'AcDbSymbolTableRecord',100,subclass,2,name,...fields);
+ const modelSpace=handle(),paperSpace=handle();
+ const rootDictionary=handle(),plotStyles=handle(),normalPlotStyle=handle();
+ const entity=(type,layer,subclass,...fields)=>
+  add(0,type,5,handle(),330,modelSpace,100,'AcDbEntity',8,layer,100,subclass,...fields);
+ const coordinate=value=>{
+  if(!Number.isFinite(value))throw Error('DXF 座標超出數值範圍');
+  return Number(value.toFixed(8));
+ };
+ const point=(x,y,code=10)=>[code,coordinate(x),code+10,coordinate(y),code+20,0];
+ const unitPoint=(matrix,x,y)=>[matrix.a*x+matrix.c*y+matrix.e,-(matrix.b*x+matrix.d*y+matrix.f)];
+ const polyline=(points,closed,layer,matrix)=>{
+  const vertices=[];
+  const same=(a,b)=>a&&b&&a[0]===b[0]&&a[1]===b[1];
+  for(const point of points){
+   if(same(vertices.at(-1),point))vertices[vertices.length-1]=point;
+   else vertices.push(point);
+  }
+  if(closed&&same(vertices[0],vertices.at(-1)))vertices.pop();
+  if(vertices.length<2)return;
+  entity('LWPOLYLINE',layer,'AcDbPolyline',90,vertices.length,70,closed?1:0,
+   ...vertices.flatMap(([x,y,bulge])=>{
+    const [dx,dy]=unitPoint(matrix,x,y);
+    return [10,coordinate(dx),20,coordinate(dy),...(bulge?[42,bulge]:[])];
+   }));
+ };
+
+ function visit(node,parentLayer,matrix){
+  const classes=node.classList;
+  if(classes.contains('axes')||classes.contains('pin-table')||classes.contains('module-link'))return;
+  const layer=classes.contains('body')||classes.contains('panel-box')?'EPART_BODY':classes.contains('mount')?'EPART_MOUNT'
+   :classes.contains('connector')?'EPART_CONNECTOR'
+   :[...classes].some(name=>/^(?:pin|rj-pin|mdr50-pin)(?:-|$)/.test(name))?'EPART_PIN'
+   :classes.contains('indicator')?'EPART_INDICATOR':parentLayer;
+  const transform=node.getAttribute('transform');
+  if(transform){
+   for(const [,op,values] of transform.matchAll(/(translate|rotate|scale)\(([^)]+)\)/g)){
+    const [a,b]=values.trim().split(/[\s,]+/).map(Number);
+    if(op==='translate')matrix=matrix.translate(a,b??0);
+    else if(op==='rotate')matrix=matrix.rotate(a);
+    else matrix=matrix.scale(a);
+   }
+  }
+  const num=name=>Number(node.getAttribute(name)??0);
+  const scale=Math.hypot(matrix.a,matrix.b);
+  switch(node.localName){
+   case 'svg':
+   case 'g':
+    for(const child of node.children)visit(child,layer,matrix);
+    break;
+   case 'rect':{
+    const w=num('width'),h=num('height');
+    if(w>0&&h>0)polyline(dxfRect(num('x'),num('y'),w,h,num('rx')),true,layer,matrix);
+    break;
+   }
+   case 'path':
+    for(const {points,closed} of dxfPath(node.getAttribute('d')))polyline(points,closed,layer,matrix);
+    break;
+   case 'circle':
+    if(num('r')>0)entity('CIRCLE',layer,'AcDbCircle',
+     ...point(...unitPoint(matrix,num('cx'),num('cy'))),40,coordinate(num('r')*scale));
+    break;
+   case 'text':{
+    const value=node.textContent.replace(/[\x00-\x1f]/g,' ').replaceAll('%','%%037');
+    const height=coordinate(num('font-size')*scale);
+    if(!value||height<=0)break;
+    const [x,y]=unitPoint(matrix,num('x'),num('y'));
+    const alignment={middle:1,end:2}[node.getAttribute('text-anchor')]??0;
+    const angle=coordinate(-Math.atan2(matrix.b,matrix.a)*180/Math.PI);
+    const length=num('textLength')*scale;
+    const fitX=x+length*matrix.a/scale,fitY=y-length*matrix.b/scale;
+    entity('TEXT','EPART_TEXT','AcDbText',...point(x,y),40,height,1,value,50,angle,7,'Standard',
+     72,length>0?5:alignment,...point(length>0?fitX:x,length>0?fitY:y,11),100,'AcDbText',73,0);
+    break;
+   }
+   default: throw Error('DXF 遇到不支援的圖面元素 '+node.localName);
+  }
+ }
+
+ section('HEADER',()=>add(9,'$ACADVER',1,'AC1021',9,'$INSUNITS',70,4,9,'$MEASUREMENT',70,1,
+  9,'$INSBASE',...point(0,0),9,'$HANDSEED',5,'HANDSEED_PLACEHOLDER'));
+ section('TABLES',()=>{
+  table('VPORT',0,()=>{});
+  table('LTYPE',3,owner=>{
+   for(const name of ['ByBlock','ByLayer','Continuous'])
+    symbol('LTYPE',owner,'AcDbLinetypeTableRecord',name,70,0,3,name,72,65,73,0,40,0);
+  });
+  const layers={'0':7,...dxfLayers};
+  table('LAYER',Object.keys(layers).length,owner=>{
+   for(const [name,color] of Object.entries(layers))
+    symbol('LAYER',owner,'AcDbLayerTableRecord',name,70,0,62,color,6,'Continuous',370,-3,390,normalPlotStyle);
+  });
+  table('STYLE',1,owner=>symbol('STYLE',owner,'AcDbTextStyleTableRecord','Standard',
+   70,0,40,0,41,1,50,0,71,0,42,2.5,3,'txt.shx',4,''));
+  table('VIEW',0,()=>{});
+  table('UCS',0,()=>{});
+  table('APPID',1,owner=>symbol('APPID',owner,'AcDbRegAppTableRecord','ACAD',70,0));
+  table('DIMSTYLE',0,()=>add(100,'AcDbDimStyleTable',71,0));
+  table('BLOCK_RECORD',2,owner=>{
+   for(const [id,name] of [[modelSpace,'*Model_Space'],[paperSpace,'*Paper_Space']])
+    add(0,'BLOCK_RECORD',5,id,330,owner,100,'AcDbSymbolTableRecord',100,'AcDbBlockTableRecord',2,name);
+  });
+ });
+ section('BLOCKS',()=>{
+  for(const [id,name] of [[modelSpace,'*Model_Space'],[paperSpace,'*Paper_Space']]){
+   add(0,'BLOCK',5,handle(),330,id,100,'AcDbEntity',8,'0',100,'AcDbBlockBegin',2,name,70,0,...point(0,0),3,name,1,'');
+   add(0,'ENDBLK',5,handle(),330,id,100,'AcDbEntity',8,'0',100,'AcDbBlockEnd');
+  }
+ });
+ section('ENTITIES',()=>visit(root,'0',new DOMMatrix()));
+ section('OBJECTS',()=>{
+  add(0,'DICTIONARY',5,rootDictionary,330,'0',100,'AcDbDictionary',281,1,3,'ACAD_PLOTSTYLENAME',350,plotStyles);
+  add(0,'ACDBDICTIONARYWDFLT',5,plotStyles,330,rootDictionary,100,'AcDbDictionary',281,1,
+   3,'Normal',350,normalPlotStyle,100,'AcDbDictionaryWithDefault',340,normalPlotStyle);
+  add(0,'ACDBPLACEHOLDER',5,normalPlotStyle,330,plotStyles);
+ });
+ add(0,'EOF');
+ return records.join('').replace('5\r\nHANDSEED_PLACEHOLDER\r\n','5\r\n'+handle()+'\r\n');
+}
+
+function drawDxf(part,viewName){
+ const {svg}=drawPart(part,viewName,false);
+ const document=new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">'+svg+'</svg>','image/svg+xml');
+ if(document.documentElement.localName!=='svg'||document.querySelector('parsererror'))throw Error('DXF 無法讀取圖面');
+ return makeDxf(document.documentElement);
+}
+
+
+let model=null;
+let fitBox=null,camera=null,drag=null;
+const minZoom=.25,maxZoom=32;
+const moveObjects=el('moveObjects');
+const editorPulse=el('editorPulse');
+const moveSelector='[data-move-line]';
+const tableUndo=[],tableRedo=[];
+let insertMenu=null;
+const insertFamilies=[
+ {label:'接頭',code:'CN'},
+ {label:'端子群',code:'TERMINAL'},
+ {label:'指示燈',code:'IND'},
+ {label:'安裝件',code:'MOUNT'}
+];
+
+function closeInsertMenu(restoreFocus=false){
+ if(!insertMenu)return;
+ insertMenu.overlay.remove();
+ insertMenu=null;
+ document.removeEventListener('pointerdown',dismissInsertMenu);
+ if(restoreFocus)preview.focus({preventScroll:true});
+}
+
+function dismissInsertMenu(event){
+ if(!insertMenu.overlay.contains(event.target))closeInsertMenu();
+}
+
+function showInsertChoices(title,choices,{ring=false,back}={}){
+ const {panel,clientX,clientY,position}=insertMenu;
+ panel.className=ring?'insert-ring':'insert-picker';
+ const buttons=choices.map(({label,code},i)=>
+  '<button type="button" data-choice="'+i+'"><span>'+esc(insertLabel(label))+'</span>'
+  +(code?'<small>'+esc(code)+'</small>':'')+'</button>').join('');
+ panel.innerHTML=ring
+  ?'<div class="insert-center"><strong>'+translate('插入','Insert')+'</strong><small>'+esc(position)+' mm</small></div>'+buttons
+  :'<header>'+(back?'<button type="button" data-back aria-label="'+translate('上一層','Back')+'">←</button>':'')
+    +'<strong>'+esc(title)+'</strong><button type="button" data-close aria-label="'+translate('關閉','Close')+'">×</button></header>'
+    +'<div class="insert-choices">'+buttons+'</div>';
+ panel.setAttribute('aria-label',title);
+ panel.onclick=event=>{
+  const button=event.target.closest('button');
+  if(!button)return;
+  if(button.hasAttribute('data-close'))closeInsertMenu(true);
+  else if(button.hasAttribute('data-back'))back();
+  else choices[Number(button.dataset.choice)]?.select();
+ };
+ const box=preview.getBoundingClientRect();
+ const clamp=(value,extent,size)=>Math.max(8,Math.min(value-size/2,extent-size-8));
+ panel.style.left=clamp(clientX-box.left,box.width,panel.offsetWidth)+'px';
+ panel.style.top=clamp(clientY-box.top,box.height,panel.offsetHeight)+'px';
+ panel.querySelector('[data-choice]')?.focus({preventScroll:true});
+}
+
+function insertDeclaration(declaration){
+ const {source,line}=insertMenu;
+ closeInsertMenu(true);
+ if(editor.value!==source)return;
+ const chunks=source.split(/(\r?\n)/);
+ const index=(line-1)*2+1;
+ const newline=chunks[index]??(source.includes('\r\n')?'\r\n':'\n');
+ const offset=chunks.slice(0,index).join('').length;
+ editSource(offset,offset,newline+declaration);
+}
+
+function showInsertFamily(){
+ const {position}=insertMenu;
+ showInsertChoices(translate('插入家族','Insert object'),insertFamilies.map(family=>({
+  ...family,select:()=>showFamilyModels(family,position)
+ })),{ring:true});
+}
+
+function showFamilyModels(family,position){
+ const back=showInsertFamily;
+ if(family.code==='CN'){
+  showInsertChoices(translate('選擇接頭型號','Choose a connector'),catalogTypes.map(type=>({
+   label:type,select:()=>{
+    const insert=style=>insertDeclaration('CN '+type+(style?' STYLE '+style:'')+' @ '+position);
+    if(type==='RJ45'||connectorSpec(type)[3]==='DSUB'){
+     showInsertChoices(type+translate(' 公母',' style'),[
+      {label:'母座',code:'SOCKET',select:()=>insert('S')},
+      {label:'公頭',code:'PLUG',select:()=>insert('P')}
+     ],{back:()=>showFamilyModels(family,position)});
+    }else insert();
+   }
+  })),{back});
+  return;
+ }
+ const models={
+  TERMINAL:[['圓形','ROUND'],['方形','SQUARE']],
+  IND:[['綠燈','GN'],['紅燈','RD'],['黃燈','YE'],['藍燈','BU'],['白燈','WH']],
+  MOUNT:[['安裝孔','HOLE'],['螺柱','STUD'],['長孔','SLOT'],['DIN 軌','DIN']]
+ };
+ showInsertChoices(translate('選擇'+family.label,'Choose a type'),models[family.code].map(([label,code])=>({
+  label,code,select:()=>{
+   const declaration=family.code==='TERMINAL'?'TERMINAL A,B @ '+position+' SHAPE '+code
+    :family.code==='IND'?'IND LED LED @ '+position+' COLOR '+code
+    :'MOUNT '+code+' @ '+position;
+   insertDeclaration(declaration);
+  }
+ })),{back});
+}
+
+function openInsertMenu(event,line){
+ const matrix=preview.firstElementChild?.getScreenCTM();
+ if(!matrix)return;
+ const {clientX,clientY}=event;
+ const point=new DOMPoint(clientX,clientY).matrixTransform(matrix.inverse());
+ const overlay=document.createElement('div'),panel=document.createElement('div');
+ overlay.className='insert-overlay';
+ panel.setAttribute('role','dialog');
+ overlay.append(panel);
+ preview.append(overlay);
+ insertMenu={overlay,panel,clientX,clientY,line,source:editor.value,
+  position:Math.round(point.x)+','+Math.round(-point.y)};
+ overlay.addEventListener('pointerdown',event=>{
+  event.stopPropagation();
+  if(event.target===overlay)closeInsertMenu(true);
+ });
+ overlay.addEventListener('keydown',event=>{
+  event.stopPropagation();
+  if(event.key==='Escape')closeInsertMenu(true);
+ });
+ document.addEventListener('pointerdown',dismissInsertMenu);
+ showInsertFamily();
+}
+
+function applyCamera(){
+ const box=camera??fitBox;
+ if(!box)return;
+ preview.firstElementChild.setAttribute('viewBox',[box.x,box.y,box.width,box.height].join(' '));
+}
+
+function resetCamera(){
+ camera=null;
+ if(drag)endDrag(drag.id);
+ applyCamera();
+}
+
+function zoomCamera(factor,anchor){
+ const box=camera??fitBox;
+ if(!box)return;
+ const zoom=fitBox.width/box.width;
+ const nextZoom=Math.min(maxZoom,Math.max(minZoom,zoom*factor));
+ const ratio=zoom/nextZoom;
+ if(ratio===1)return;
+ const {x,y}=anchor??{x:box.x+box.width/2,y:box.y+box.height/2};
+ camera={x:x+(box.x-x)*ratio,y:y+(box.y-y)*ratio,width:box.width*ratio,height:box.height*ratio};
+ applyCamera();
+}
+
+function panCamera(dx,dy){
+ const box=camera??fitBox;
+ const scale=preview.firstElementChild?.getScreenCTM()?.a;
+ if(!box||!scale)return;
+ camera={...box,x:box.x-dx/scale,y:box.y-dy/scale};
+ applyCamera();
+}
+
+function endDrag(id){
+ if(drag?.id!==id)return;
+ clearTimeout(drag.holdTimer);
+ drag.object?.removeAttribute('transform');
+ drag.guide?.remove();
+ drag=null;
+ preview.classList.remove('is-dragging');
+ if(preview.hasPointerCapture(id))preview.releasePointerCapture(id);
+}
+
+function beginObjectDrag(object,event){
+ const matrix=object.getScreenCTM();
+ if(!matrix)return null;
+ const inverse=matrix.inverse();
+ const box=object.dataset.moveBox.split(' ').map(Number);
+ const origin=object.dataset.moveOrigin.split(' ').map(Number);
+ const reference=object.dataset.moveReference;
+ const targets=reference?[reference.split(' ').map(Number)]:[];
+ for(const other of preview.querySelectorAll(moveSelector)){
+  if(other===object)continue;
+  const screen=other.getScreenCTM();
+  if(!screen)continue;
+  const toLocal=inverse.multiply(screen);
+  const [left,top,right,bottom]=other.dataset.moveBox.split(' ').map(Number);
+  const a=new DOMPoint(left,top).matrixTransform(toLocal);
+  const b=new DOMPoint(right,bottom).matrixTransform(toLocal);
+  targets.push([a.x,a.y,b.x,b.y]);
+ }
+ const guide=document.createElementNS('http://www.w3.org/2000/svg','path');
+ guide.setAttribute('fill','none');
+ guide.setAttribute('stroke','#2563eb');
+ guide.setAttribute('stroke-width','1');
+ guide.setAttribute('stroke-dasharray','4 3');
+ guide.setAttribute('vector-effect','non-scaling-stroke');
+ guide.setAttribute('pointer-events','none');
+ object.parentNode.append(guide);
+ const pointer=new DOMPoint(event.clientX,event.clientY).matrixTransform(inverse);
+ return {object,guide,box,origin,targets,pointer,inverse,source:editor.value};
+}
+
+function dragAxis(axis,raw,state,fine,showAlignment){
+ const position=fine?Math.round(raw*10)/10:Math.round(raw);
+ if(!showAlignment)return {position};
+ const extent=state.box[axis+2]-state.box[axis];
+ const leading=position+state.box[axis]-state.origin[axis];
+ const edges=[leading,leading+extent/2,leading+extent];
+ for(const target of state.targets){
+  const first=target[axis],last=target[axis+2];
+  for(const edge of [first,(first+last)/2,last]){
+   if(edges.some(value=>Math.abs(value-edge)<.001))return {position,alignment:{edge,target}};
+  }
+ }
+ return {position};
+}
+
+function moveObject(event){
+ const state=drag;
+ if(!state.position&&Math.hypot(event.clientX-state.x,event.clientY-state.y)<3)return;
+ state.lastPointer=event;
+ const pointer=new DOMPoint(event.clientX,event.clientY).matrixTransform(state.inverse);
+ const [left,top,right,bottom]=state.box;
+ const [originX,originY]=state.origin;
+ const x=dragAxis(0,originX+pointer.x-state.pointer.x,state,event.shiftKey,!event.altKey);
+ const y=dragAxis(1,originY+pointer.y-state.pointer.y,state,event.shiftKey,!event.altKey);
+ const dx=x.position-originX,dy=y.position-originY;
+ state.position=[x.position,y.position];
+ state.object.setAttribute('transform','translate('+f(dx)+','+f(dy)+')');
+ let path='';
+ if(x.alignment){
+  const {edge,target}=x.alignment;
+  path+='M'+edge+' '+Math.min(top+dy,target[1])+' V'+Math.max(bottom+dy,target[3]);
+ }
+ if(y.alignment){
+  const {edge,target}=y.alignment;
+  path+='M'+Math.min(left+dx,target[0])+' '+edge+' H'+Math.max(right+dx,target[2]);
+ }
+ state.guide.setAttribute('d',path);
+}
+
+function refreshDragModifiers(event){
+ const pointer=drag?.lastPointer;
+ if(pointer&&(event.key==='Shift'||event.key==='Alt')){
+  moveObject({clientX:pointer.clientX,clientY:pointer.clientY,shiftKey:event.shiftKey,altKey:event.altKey});
+ }
+}
+
+function commitObjectDrag(state){
+ if(!state.position||editor.value!==state.source)return;
+ const [x,y]=state.position;
+ if(x===state.origin[0]&&y===state.origin[1])return;
+ const line=Number(state.object.dataset.moveLine);
+ const chunks=state.source.split(/(\r?\n)/);
+ const raw=chunks[(line-1)*2];
+ if(raw===undefined)return;
+ const value=sourceLine(raw);
+ const [positionStart,positionEnd]=state.object.dataset.moveSpan.split(' ').map(Number);
+ const offset=chunks.slice(0,(line-1)*2).join('').length+raw.indexOf(value);
+ const start=offset+positionStart,end=offset+positionEnd;
+ let position='@ '+x+','+(-y);
+ if(start===end)position=positionEnd===value.length?' '+position:position+' ';
+ editSource(start,end,position);
+}
+
+function editSource(start,end,replacement){
+ const source=editor.value,before=source.slice(start,end);
+ if(before===replacement)return;
+ const {scrollTop,scrollLeft}=editor;
+ camera??={...fitBox};
+ editor.focus({preventScroll:true});
+ editor.setSelectionRange(start,end);
+ const previousModel=model;
+ document.execCommand?.('insertText',false,replacement);
+ if(editor.value===source){
+  tableUndo.push({start,before,after:replacement});
+  tableRedo.length=0;
+  editor.setRangeText(replacement,start,end,'end');
+  render();
+ }else if(model===previousModel)render();
+ preview.focus({preventScroll:true});
+ restoreEditorScroll(scrollTop,scrollLeft);
+}
+
+function tableHistoryKey(event){
+ if(!(event.ctrlKey||event.metaKey)||event.altKey)return null;
+ const key=event.key.toLowerCase();
+ if(key==='y'||(key==='z'&&event.shiftKey))return 'redo';
+ if(key==='z')return 'undo';
+ return null;
+}
+
+function applyTableHistory(command){
+ const [from,to]=command==='undo'?[tableUndo,tableRedo]:[tableRedo,tableUndo];
+ const edit=from.pop();
+ if(!edit)return false;
+ const {scrollTop,scrollLeft}=editor;
+ const [before,after]=command==='undo'?[edit.after,edit.before]:[edit.before,edit.after];
+ editor.setRangeText(after,edit.start,edit.start+before.length,'end');
+ to.push(edit);
+ render();
+ restoreEditorScroll(scrollTop,scrollLeft);
+ return true;
+}
+
+function restoreEditorScroll(top,left){
+ editor.scrollTop=top;
+ editor.scrollLeft=left;
+ syncEditorPulseScroll();
+}
+
+function syncEditorPulseScroll(){
+ editorPulse.style.transform='translateY('+(-editor.scrollTop)+'px)';
+}
+
+function pulseEditorLine(line){
+ const {lineHeight,paddingTop}=getComputedStyle(editor);
+ const height=parseFloat(lineHeight);
+ const top=parseFloat(paddingTop)+(line-1)*height;
+ if(top<editor.scrollTop||top+height>editor.scrollTop+editor.clientHeight){
+  editor.scrollTop=Math.max(0,top-(editor.clientHeight-height)/2);
+ }
+ editorPulse.style.top=top+'px';
+ editorPulse.style.height=height+'px';
+ syncEditorPulseScroll();
+ for(const animation of editorPulse.getAnimations())animation.cancel();
+ const opacity=matchMedia('(prefers-reduced-motion: reduce)').matches
+  ?[.85,.85]:[.25,1,.2,.9,0];
+ editorPulse.animate(opacity.map(opacity=>({opacity})),{duration:1050,easing:'ease-in-out'});
+}
+
+moveObjects.onclick=()=>{
+ closeInsertMenu();
+ if(drag)endDrag(drag.id);
+ const enabled=preview.classList.toggle('move-mode');
+ if(!enabled)for(const animation of editorPulse.getAnimations())animation.cancel();
+ moveObjects.setAttribute('aria-pressed',String(enabled));
+};
+
+editor.addEventListener('scroll',syncEditorPulseScroll);
+
+preview.addEventListener('wheel',event=>{
+ if(insertMenu)return;
+ const matrix=preview.firstElementChild?.getScreenCTM();
+ if(!matrix||!event.deltaY)return;
+ event.preventDefault();
+ if(drag?.object)return;
+ const unit=event.deltaMode===1?16:event.deltaMode===2?240:1;
+ const amount=Math.max(-.4,Math.min(.4,-event.deltaY*unit*.002));
+ const anchor=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());
+ zoomCamera(Math.exp(amount),anchor);
+},{passive:false});
+preview.addEventListener('pointerdown',event=>{
+ if(event.button!==0||drag||!fitBox)return;
+ const object=preview.classList.contains('move-mode')
+  ?event.target.closest('[data-table-header], [data-move-object]')?.closest(moveSelector):null;
+ const objectDrag=object?beginObjectDrag(object,event):null;
+ if(object)pulseEditorLine(Number(object.dataset.moveLine));
+ drag={id:event.pointerId,x:event.clientX,y:event.clientY,...objectDrag};
+ const selected=model?.views[viewSelect.value];
+ if(preview.classList.contains('move-mode')&&!object
+  &&(event.target===preview||event.target===preview.firstElementChild)
+  &&!selected?.assembly&&!selected?.placements&&selected?.insertAfter){
+  const id=event.pointerId;
+  drag.holdTimer=setTimeout(()=>{
+   if(drag?.id!==id)return;
+   endDrag(id);
+   openInsertMenu(event,selected.insertAfter);
+  },500);
+ }
+ preview.focus({preventScroll:true});
+ preview.setPointerCapture(event.pointerId);
+ preview.classList.add('is-dragging');
+});
+preview.addEventListener('pointermove',event=>{
+ if(drag?.id!==event.pointerId)return;
+ if(drag.object){moveObject(event);return}
+ if(drag.holdTimer){
+  if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<6)return;
+  clearTimeout(drag.holdTimer);
+  drag.holdTimer=null;
+ }
+ panCamera(event.clientX-drag.x,event.clientY-drag.y);
+ drag.x=event.clientX;
+ drag.y=event.clientY;
+});
+preview.addEventListener('pointerup',event=>{
+ if(drag?.id!==event.pointerId)return;
+ if(drag.object&&drag.position)moveObject(event);
+ const state=drag;
+ endDrag(event.pointerId);
+ if(state.object)commitObjectDrag(state);
+});
+for(const type of ['pointercancel','lostpointercapture']){
+ preview.addEventListener(type,event=>endDrag(event.pointerId));
+}
+preview.addEventListener('contextmenu',event=>{
+ if(drag?.holdTimer||insertMenu)event.preventDefault();
+});
+const panKeys={ArrowLeft:[32,0],ArrowRight:[-32,0],ArrowUp:[0,32],ArrowDown:[0,-32]};
+preview.addEventListener('keydown',event=>{
+ if(drag?.object||drag?.holdTimer){
+  if(event.key==='Escape'){
+   endDrag(drag.id);
+   event.preventDefault();
+  }else refreshDragModifiers(event);
+  return;
+ }
+ if(preview.classList.contains('move-mode')&&(event.ctrlKey||event.metaKey)&&!event.altKey){
+  const command=tableHistoryKey(event);
+  if(command){
+   event.preventDefault();
+   if(!applyTableHistory(command)){
+    const {scrollTop,scrollLeft}=editor;
+    editor.focus({preventScroll:true});
+    document.execCommand?.(command);
+    preview.focus({preventScroll:true});
+    restoreEditorScroll(scrollTop,scrollLeft);
+   }
+  }
+  return;
+ }
+ if(event.ctrlKey||event.metaKey||event.altKey)return;
+ const step=panKeys[event.key];
+ if(step)panCamera(...step);
+ else if(event.key==='+'||event.key==='=')zoomCamera(1.25);
+ else if(event.key==='-')zoomCamera(1/1.25);
+ else if(event.key==='Home'||event.key==='0')resetCamera();
+ else return;
+ event.preventDefault();
+});
+preview.addEventListener('keyup',refreshDragModifiers);
+el('zoomIn').onclick=()=>zoomCamera(1.25);
+el('zoomOut').onclick=()=>zoomCamera(1/1.25);
+el('zoomReset').onclick=resetCamera;
+function render(){
+ model=parse(editor.value);
+ const keys=Object.keys(model.views),previous=viewSelect.value;
+ viewSelect.innerHTML=keys.map(key=>{
+  const view=model.views[key];
+  const label=view.placements?translate('共同圖面 · ','Shared drawing · ')+(view.label??key).split(' · ').at(-1):view.label??key;
+  return '<option value="'+esc(key)+'">'+esc(label)+'</option>';
+ }).join('');
+ viewSelect.value=keys.includes(previous)?previous:keys[0]||'FRONT';
+ showView(previous!==viewSelect.value);
+}
+
+function showView(reset=false){
+ closeInsertMenu();
+ if(drag)endDrag(drag.id);
+ if(reset)resetCamera();
+ const selected=model.views[viewSelect.value];
+ preview.innerHTML=draw(model,viewSelect.value,true);
+ const initial=preview.firstElementChild?.viewBox?.baseVal;
+ fitBox=initial?{x:initial.x,y:initial.y,width:initial.width,height:initial.height}:null;
+ if(camera)applyCamera();
+ const views=selected?.assembly||selected?.placements?[selected]:Object.values(selected?.part?.views??model.views);
+ const counts=views.reduce((n,v)=>n+v.connectors.length,0);
+ const terminalCount=views.reduce((n,v)=>n+v.terminals.reduce((sum,t)=>sum+t.cols,0),0);
+ const title=selected?.title??selected?.part?.name??(selected?.placements?translate('共同圖面','Shared drawing'):model.name);
+ const members=selected?.assembly?' · '+selected.assembly.filter(member=>member.id).length+translate(' 個模組',' modules'):'';
+ const size=selected?.placements?selected.placements.length+translate(' 個零件',' parts'):(selected?.body??model.body).map(f).join(' × ')+' mm';
+ el('info').textContent=title+members+' · '+size+' · '+counts+translate(' 個接頭 · ',' connectors · ')+terminalCount
+  +translate(' 顆獨立端子 · ',' standalone terminals · ')+Object.keys(model.views).length+translate(' 個視圖',' views');
+ renderStatus();
+}
+function renderStatus(){
+ const svgButton=el('svgBtn');
+ svgButton.disabled=model.errors.length>0;
+ svgButton.title=svgButton.disabled?translate('修正語法錯誤後即可匯出 SVG','Fix syntax errors to export SVG'):'';
+ const view=model.views[viewSelect.value];
+ const dxfButton=el('dxfBtn');
+ dxfButton.disabled=svgButton.disabled||!canExportDxf(view);
+ dxfButton.title=svgButton.disabled?translate('修正語法錯誤後即可匯出 DXF','Fix syntax errors to export DXF')
+  :dxfButton.disabled?translate('DXF 支援單一 PART 視圖','DXF export requires an individual PART view'):'';
+ const errors=model.errors.map(message=>diagnosticMarkup(message,'err'));
+ const warnings=model.warnings.map(message=>diagnosticMarkup(message,'warn',translate('警告：','Warning: ')));
+ const links=view?.links.length?' · '+view.links.length+translate(' 個模組介面',' module interfaces'):'';
+ const success='<span style="color:#79e9c9">✓ '+translate('語法解析完成','Syntax parsed')+'</span> · '+(view?.connectors.length||0)
+  +translate(' 個可見接頭',' visible connectors')+links+' · '+translate('範例座標僅供預覽，未核實者禁止用於加工','Verify sample dimensions before fabrication');
+ status.innerHTML=[...(errors.length?errors:[success]),...warnings].join('');
+}
+function canExportDxf(view){
+ return Boolean(view&&!view.assembly&&!view.placements);
+}
+
+function diagnosticMarkup(message,kind,prefix=''){
+ const line=message.match(/^第 (\d+) 行/)?.[1];
+ const localized=translate(message,message.replace(/^第 (\d+) 行(?:（([^）]+)）)?：/,(_,line,view)=>'Line '+line+(view?' ('+view+')':'')+': '));
+ const label=esc(prefix+localized);
+ return line?'<button type="button" class="diagnostic '+kind+'" data-line="'+line+'">'+label+'</button>'
+  :'<div class="'+kind+'">'+label+'</div>';
+}
+
+function selectDiagnosticLine(line){
+ const lines=editor.value.split('\n');
+ if(line<1||line>lines.length)return;
+ const start=lines.slice(0,line-1).reduce((offset,text)=>offset+text.length+1,0);
+ editor.focus();
+ editor.setSelectionRange(start,start+lines[line-1].replace(/\r$/,'').length);
+ const lineHeight=parseFloat(getComputedStyle(editor).lineHeight);
+ editor.scrollTop=Math.max(0,(line-1)*lineHeight-editor.clientHeight/2);
+}
+function download(name,text,type){
+ const safeName=name.replaceAll('/','／').replace(/[<>:"\\|?*\x00-\x1f]/g,'_').replace(/[. ]+$/,'');
+ const reserved=/^(?:CON|PRN|AUX|NUL|(?:COM|LPT)[1-9¹²³])(?:[. ]|$)/i.test(safeName);
+ const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;
+ a.download=reserved?'_'+safeName:safeName||'part';
+ a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+editor.value=SAMPLES.plc;
+function clearTableHistory(){
+ tableUndo.length=0;
+ tableRedo.length=0;
+}
+editor.addEventListener('input',()=>{
+ clearTableHistory();
+ render();
+});
+editor.addEventListener('keydown',event=>{
+ const command=tableHistoryKey(event);
+ if(command&&applyTableHistory(command))event.preventDefault();
+});
+status.addEventListener('click',event=>{
+ const line=event.target.closest('button[data-line]')?.dataset.line;
+ if(line)selectDiagnosticLine(Number(line));
+});
+viewSelect.addEventListener('change',()=>showView(true));
+el('saveBtn').onclick=()=>download((model?.name||'part')+'.epart',parse(editor.value,true).formatted,'text/plain;charset=utf-8');
+el('svgBtn').onclick=()=>{
+ const key=viewSelect.value,view=model.views[key];
+ download((view?.part?.name??model.name)+'_'+(view?.viewName??key)+'.svg',draw(model,key),'image/svg+xml;charset=utf-8');
+};
+el('dxfBtn').onclick=()=>{
+ const key=viewSelect.value,view=model.views[key];
+ if(model.errors.length||!canExportDxf(view))return;
+ const part=view.part??model,viewName=view.viewName??key;
+ try{
+  download(part.name+'_'+viewName+'.dxf',drawDxf(part,viewName),'application/dxf');
+ }catch(error){
+  const message=document.createElement('div');
+  message.className='err';
+  message.textContent=translate('DXF 匯出失敗：','DXF export failed: ')+error.message;
+  status.replaceChildren(message);
+ }
+};
+
+function loadExample(){
+ resetCamera();
+ clearTableHistory();
+ editor.value=SAMPLES[el('exampleSelect').value]||EXAMPLE;
+ render();
+}
+el('exBtn').onclick=loadExample;
+el('exampleSelect').onchange=loadExample;
+el('upload').onchange=async event=>{
+ const file=event.target.files?.[0];
+ if(file){
+  const source=await file.text();
+  resetCamera();
+  clearTableHistory();
+  editor.value=source;
+  render();
+ }
+ event.target.value='';
+};
+const languageKey='bytes-epart-language';
+let language='zh-Hant';
+let savedLanguage;
+try{savedLanguage=localStorage.getItem(languageKey)}catch{}
+
+const settingsButton=document.createElement('button');
+settingsButton.type='button';
+document.querySelector('body > header .toolbar').append(settingsButton);
+
+const languageDialog=document.createElement('dialog');
+languageDialog.className='language-dialog';
+languageDialog.setAttribute('aria-labelledby','languageTitle');
+languageDialog.innerHTML=`<h2 id="languageTitle"><span lang="zh-Hant">選擇語言</span> / <span lang="en">Choose a language</span></h2>
+<div class="language-choices">
+ <button type="button" lang="zh-Hant" data-language="zh-Hant">繁體中文</button>
+ <button type="button" lang="en" data-language="en">English</button>
+</div>
+<button type="button" class="language-close"></button>`;
+document.body.append(languageDialog);
+const languageClose=languageDialog.querySelector('.language-close');
+let choosingFirstLanguage=savedLanguage!=='zh-Hant'&&savedLanguage!=='en';
+
+const appHeading=document.querySelector('body > header h1');
+const appVersion=appHeading.querySelector('.pill');
+const aboutTrigger=document.createElement('button');
+aboutTrigger.type='button';
+aboutTrigger.className='about-trigger';
+aboutTrigger.setAttribute('aria-label','關於 Bytes EPART DSL');
+aboutTrigger.setAttribute('aria-haspopup','dialog');
+appHeading.querySelector('span').classList.add('about-name');
+aboutTrigger.append(...appHeading.childNodes);
+appHeading.append(aboutTrigger);
+
+const aboutDialog=document.createElement('dialog');
+aboutDialog.id='aboutDialog';
+aboutDialog.className='language-dialog about-dialog';
+aboutDialog.setAttribute('aria-labelledby','aboutTitle');
+aboutTrigger.setAttribute('aria-controls',aboutDialog.id);
+aboutDialog.innerHTML=`<h2 id="aboutTitle">關於 Bytes EPART DSL</h2>
+<span class="pill" id="aboutVersion"></span>
+<p id="aboutIntro">Bytes EPART DSL 把工業電氣元件的文字描述轉成 2D 圖紙，保留配盤、配線與維修時實際有功能的尺寸，例如安裝孔距、接頭位置與端子間距。圖上也能標示腳位與用途，並省略拔模角等製造細節。</p>
+<h3 id="aboutUpdates">近期更新</h3>
+<ul>
+ <li id="aboutLanguages">首次開啟可選繁體中文或英文，也可從設定切換。</li>
+ <li id="aboutDragging">可拖曳圖面上的物件，並將位置寫回 DSL。</li>
+ <li id="aboutExports">支援 SVG 匯出，單一零件視圖也可匯出 DXF。</li>
+</ul>
+<h3 id="aboutAuthor">聯絡作者</h3>
+<p><span id="aboutCredit">由 Ryan Hsu 提出並開發</span> · <a href="mailto:ryan@bytes.tw">ryan@bytes.tw</a></p>
+<form method="dialog"><button id="aboutClose" autofocus>關閉</button></form>`;
+document.body.append(aboutDialog);
+el('aboutVersion').textContent=appVersion.textContent;
+aboutTrigger.onclick=()=>aboutDialog.showModal();
+
+const interfaceText=[
+ ['.about-trigger','About Bytes EPART DSL','aria-label'],
+ ['#aboutTitle','About Bytes EPART DSL'],
+ ['#aboutIntro','Bytes EPART DSL turns text descriptions of industrial electrical components into 2D drawings. It keeps the dimensions that matter for panel layout, wiring, and maintenance, such as mounting hole spacing, connector positions, and terminal pitch. Drawings can show pin numbers and functions while omitting manufacturing details such as draft angles.'],
+ ['#aboutUpdates','Recent updates'],
+ ['#aboutLanguages','Choose Traditional Chinese or English on first launch, or switch in Settings.'],
+ ['#aboutDragging','Drag objects in the drawing and write their positions back to the DSL.'],
+ ['#aboutExports','Export SVG drawings or export an individual part view as DXF.'],
+ ['#aboutAuthor','Contact the author'],
+ ['#aboutCredit','Conceived and developed by Ryan Hsu'],
+ ['#aboutClose','Close'],
+ ['body > header small','Electrical Part Description Language · 2D drawing preview'],
+ ['label[for="exampleSelect"]','Example'],
+ ['#exampleSelect option[value="ioTable"]','I/O tables (CSV and odd/even split)'],
+ ['#exampleSelect option[value="split50"]','50-pin solder tables (four groups)'],
+ ['#exampleSelect option[value="terminal"]','Standalone terminals (single and double)'],
+ ['#exampleSelect option[value="a1"]','-A1 Mitsubishi PLC assembly'],
+ ['#exampleSelect option[value="stepper"]','Stepper drive (basic)'],
+ ['#exampleSelect option[value="original"]','Original generic example'],
+ ['#exampleSelect option[value="cnCatalog"]','Connector template catalog'],
+ ['#exBtn','Reload example'],
+ ['label[for="upload"]','Open .epart',null,true],
+ ['#saveBtn','Save DSL'],
+ ['#svgBtn','Export SVG'],
+ ['#dxfBtn','Export DXF'],
+ ['main section:first-child .section-head strong','DSL editor'],
+ ['main section:first-child .section-head .note','Live preview · mm'],
+ ['main section:last-child .section-head strong','Drawing preview'],
+ ['details summary','Quick syntax reference'],
+ ['#zoomReset','Fit'],
+ ['#moveObjects','Drag mode'],
+ ['.preview-foot span:last-child','Origin at BODY center · SVG export · DXF for individual PART views'],
+ ['#exampleSelect','Select an example','aria-label'],
+ ['#editor','EPART DSL editor','aria-label'],
+ ['#viewSelect','Select a view','aria-label'],
+ ['.preview-controls','Drawing zoom','aria-label'],
+ ['#zoomOut','Zoom out','aria-label'],
+ ['#zoomOut','Zoom out','title'],
+ ['#zoomIn','Zoom in','aria-label'],
+ ['#zoomIn','Zoom in','title'],
+ ['#zoomReset','Fit drawing to window','title'],
+ ['#moveObjects','Drag connectors, parts, or table headers. Press and hold empty space to insert. Shift for fine positioning, Alt to hide guides, Esc to cancel.','title'],
+ ['#preview','Drawing preview. Scroll to zoom and drag to pan.','aria-label']
+].map(([selector,english,attribute,textNode])=>{
+ const element=document.querySelector(selector);
+ const target=textNode?element.firstChild:element;
+ const original=attribute?element.getAttribute(attribute):target.textContent;
+ return {element,target,original,english,attribute};
+});
+
+const quickReference=document.querySelector('.doc');
+const chineseReference=quickReference.textContent;
+const englishReference=`PART name BODY 130,90,83
+VIEW FRONT
+CN -CN1 IDC20 AT -20,30 ROT 90 ORDER ROW
+  LABEL A1..A10,B1..B10
+  PIN 1 VCC "Power input"
+  PINS 2=GND 3=IN0
+TERMINAL U,V AT -30,-35 PITCH 16 ROT 90
+IND LED RUN @K9
+MOUNT HOLE AT -30,40 D 4.5
+TABLE -CN1 K8 SPLIT
+  TITLE "CN1 pin function"
+  1,Power input
+  2,Ground
+
+Dimensions are in mm. Each view has its origin at the BODY center, with X to the right and Y up. Use BODY W H [D] HIDE to retain dimensions while hiding the body outline.
+AT accepts coordinates or a keypad anchor. @ is equivalent to AT. K8 is top center, K2 bottom center, and K5 center.
+CN normally uses the connector center, staggered terminals use the unstaggered grid center, and RJ45 uses its template origin. TERMINAL uses the first terminal center. TABLE uses its top-left corner for coordinates.
+Use STYLE P or PLUG for a plug and STYLE S or SOCKET for a socket. IDC accepts an even total pin count from 2 to 1000. RJ45 at ROT 0 is numbered left to right.
+Use START to set the first pin, ORDER ROW to number one row at a time, LABEL for pin order, and LABEL_ROWS for physical rows. LABEL NONE hides contact text. PINEND NONE hides the last-pin marker.
+Paste address and function pairs as CSV under TABLE. SPLIT alone separates odd and even pins. Specify groups with ranges such as 1..25 BY 2 / 2..24 BY 2.
+In drag mode, move connectors, terminal groups, table headers, or whole parts. Positions snap to whole millimeters. Hold Shift for finer positioning, Alt to hide alignment guides, or Esc to cancel. Press and hold empty space in a single PART view to insert an object.
+For multiple parts, use PLACE name @0,0 to position a part on a shared drawing, or SET -ID to assemble parts.
+
+Verify sample dimensions before fabrication.`;
+
+function setLanguage(value){
+ language=value;
+ document.documentElement.lang=value;
+ for(const {element,target,original,english,attribute} of interfaceText){
+  const text=value==='en'?english:original;
+  if(attribute)element.setAttribute(attribute,text);
+  else target.textContent=text;
+ }
+ quickReference.textContent=translate(chineseReference,englishReference);
+ settingsButton.textContent=translate('設定','Settings');
+ languageClose.textContent=translate('關閉','Close');
+ for(const button of languageDialog.querySelectorAll('[data-language]')){
+  button.setAttribute('aria-pressed',String(button.dataset.language===value&&!choosingFirstLanguage));
+ }
+}
+
+function translate(chinese,english){
+ return language==='en'?english:chinese;
+}
+
+const englishInsertLabels={
+ '接頭':'Connector','端子群':'Terminals','指示燈':'Indicator','安裝件':'Mount',
+ '母座':'Socket','公頭':'Plug','圓形':'Round','方形':'Square','綠燈':'Green',
+ '紅燈':'Red','黃燈':'Yellow','藍燈':'Blue','白燈':'White','安裝孔':'Hole',
+ '螺柱':'Stud','長孔':'Slot','DIN 軌':'DIN rail'
+};
+function insertLabel(label){
+ return translate(label,englishInsertLabels[label]??label);
+}
+
+settingsButton.onclick=()=>{
+ languageClose.hidden=false;
+ languageDialog.showModal();
+ languageDialog.querySelector('[aria-pressed="true"]')?.focus();
+};
+languageClose.onclick=()=>languageDialog.close();
+languageDialog.addEventListener('cancel',event=>{
+ if(choosingFirstLanguage)event.preventDefault();
+});
+languageDialog.addEventListener('click',event=>{
+ const value=event.target.closest('[data-language]')?.dataset.language;
+ if(!value)return;
+ choosingFirstLanguage=false;
+ try{localStorage.setItem(languageKey,value)}catch{}
+ setLanguage(value);
+ render();
+ languageDialog.close();
+ settingsButton.focus({preventScroll:true});
+});
+setLanguage(choosingFirstLanguage?'zh-Hant':savedLanguage);
+render();
+if(choosingFirstLanguage){
+ languageClose.hidden=true;
+ languageDialog.showModal();
+}
+</script></body></html>
