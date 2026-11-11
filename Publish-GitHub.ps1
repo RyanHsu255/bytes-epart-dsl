@@ -12,8 +12,6 @@ $repo = 'RyanHsu255/bytes-epart-dsl'
 $remote = "https://github.com/$repo.git"
 $publicFiles = @(
     'README.md'
-    'AGENTS.md'
-    'AGENTS_TC.md'
     'Publish-GitHub.bat'
     'Publish-GitHub.ps1'
     'Deploy-Firebase.bat'
@@ -47,6 +45,7 @@ $checkout = Join-Path $work 'repo'
 Invoke-Checked git @('clone', $remote, $checkout)
 Push-Location -LiteralPath $checkout
 try {
+    Invoke-Checked git @('rm', '--ignore-unmatch', '--', 'AGENTS.md', 'AGENTS_TC.md')
     foreach ($file in $publicFiles) {
         $destination = Join-Path $checkout $file
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
